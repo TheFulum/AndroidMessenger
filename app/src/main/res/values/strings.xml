@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Messenger</string>
+    <string name="app_name">Poligram</string>
     <string name="login_title">Login</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -8,4 +8,7 @@
     <string name="sing_up">Sing up</string>
     <string name="sign_up">Sign Up</string>
     <string name="username">Username</string>
+    <string name="profile">Profile</string>
+    <string name="new_chat">New chat</string>
+    <string name="chats">Chats</string>
 </resources>

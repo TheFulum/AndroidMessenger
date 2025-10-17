@@ -35,10 +35,8 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
 
+
         binding.signUpBtn.setOnClickListener(v ->  {
-            Log.d(TAG, "Username: " + binding.usernameEt.getText().toString());
-            Log.d(TAG, "Email: " + binding.emailEt.getText().toString());
-            Log.d(TAG, "Password: " + binding.passwordEt.getText().toString());
             if (binding.emailEt.getText().toString().isEmpty() || binding.passwordEt.getText().toString().isEmpty() || binding.usernameEt.getText().toString().isEmpty()) {
                 Toast.makeText(getApplicationContext(),"Fields cannot be empty", Toast.LENGTH_SHORT).show();
             } else {
