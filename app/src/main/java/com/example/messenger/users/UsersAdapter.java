@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.messenger.R;
+import com.example.messenger.utils.ChatUtil;
 
 import java.util.ArrayList;
 
@@ -28,8 +29,13 @@ public class UsersAdapter extends RecyclerView.Adapter<UserViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
+        User user = users.get(position);
+
         holder.username_tv.setText(users.get(position).username);
 
+        holder.itemView.setOnClickListener(view -> {
+            ChatUtil.createChat(user);
+        });
 
     }
 

@@ -2,9 +2,10 @@ package com.example.messenger.users;
 
 public class User {
 
-    String username;
+    public String uid, username;
 
-    public User(String username) {
+    public User(String uid, String username) {
+        this.uid = uid;
         this.username = username;
     }
 }

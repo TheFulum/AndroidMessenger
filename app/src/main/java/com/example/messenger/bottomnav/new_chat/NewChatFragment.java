@@ -51,14 +51,15 @@ public class NewChatFragment extends Fragment {
                                 continue;
                             }
 
+                            String uid = userSnapshot.getKey();
                             String username = userSnapshot.child("username").getValue(String.class);
 
                             if (username != null) {
-                                users.add(new User(username));
+                                users.add(new User(uid, username));
                             }
                         }
 
-                        adapter.notifyDataSetChanged(); // 🔥 Обновляем RecyclerView
+                        adapter.notifyDataSetChanged(); // Обновляем RecyclerView
                     }
 
                     @Override
