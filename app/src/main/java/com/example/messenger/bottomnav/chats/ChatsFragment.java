@@ -21,13 +21,14 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ChatsFragment extends Fragment {
 
     private RecyclerView chatsRv;
-    private ArrayList<Chat> chats;
+    private ArrayList<Map<String, Object>> chats; // Теперь храним chatId и Chat объект
     private ChatsAdapter chatsAdapter;
-    private ValueEventListener chatsListener1, chatsListener2;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -53,13 +54,11 @@ public class ChatsFragment extends Fragment {
         }
 
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        Log.d("ChatsFragment", "Current user UID: " + uid);
+        Log.d("ChatsFragment", "Loading chats for user: " + uid);
 
-        // Очищаем список
         chats.clear();
 
-        // Первый слушатель для чатов где пользователь - user1
-        chatsListener1 = FirebaseDatabase.getInstance().getReference("Chats")
+        FirebaseDatabase.getInstance().getReference("Chats")
                 .orderByChild("user1")
                 .equalTo(uid)
                 .addValueEventListener(new ValueEventListener() {
@@ -70,13 +69,13 @@ public class ChatsFragment extends Fragment {
                         for (DataSnapshot chatSnap : snapshot.getChildren()) {
                             Chat chat = chatSnap.getValue(Chat.class);
                             if (chat != null) {
-                                // Устанавливаем ID чата из ключа
-                                chat.setChatId(chatSnap.getKey());
-                                // Проверяем на дубликаты
-                                if (!containsChat(chat.getChatId())) {
-                                    chats.add(chat);
-                                    Log.d("ChatsFragment", "Added chat from user1: " + chat.getChatId() +
-                                            " user1: " + chat.getUser1() + " user2: " + chat.getUser2());
+                                Map<String, Object> chatData = new HashMap<>();
+                                chatData.put("chatId", chatSnap.getKey()); // Сохраняем ID чата
+                                chatData.put("chat", chat); // Сохраняем объект чата
+
+                                if (!containsChat(chatSnap.getKey())) {
+                                    chats.add(chatData);
+                                    Log.d("ChatsFragment", "Added chat from user1: " + chatSnap.getKey());
                                 }
                             }
                         }
@@ -90,8 +89,7 @@ public class ChatsFragment extends Fragment {
                     }
                 });
 
-        // Второй слушатель для чатов где пользователь - user2
-        chatsListener2 = FirebaseDatabase.getInstance().getReference("Chats")
+        FirebaseDatabase.getInstance().getReference("Chats")
                 .orderByChild("user2")
                 .equalTo(uid)
                 .addValueEventListener(new ValueEventListener() {
@@ -102,13 +100,13 @@ public class ChatsFragment extends Fragment {
                         for (DataSnapshot chatSnap : snapshot.getChildren()) {
                             Chat chat = chatSnap.getValue(Chat.class);
                             if (chat != null) {
-                                // Устанавливаем ID чата из ключа
-                                chat.setChatId(chatSnap.getKey());
-                                // Проверяем на дубликаты
-                                if (!containsChat(chat.getChatId())) {
-                                    chats.add(chat);
-                                    Log.d("ChatsFragment", "Added chat from user2: " + chat.getChatId() +
-                                            " user1: " + chat.getUser1() + " user2: " + chat.getUser2());
+                                Map<String, Object> chatData = new HashMap<>();
+                                chatData.put("chatId", chatSnap.getKey());
+                                chatData.put("chat", chat);
+
+                                if (!containsChat(chatSnap.getKey())) {
+                                    chats.add(chatData);
+                                    Log.d("ChatsFragment", "Added chat from user2: " + chatSnap.getKey());
                                 }
                             }
                         }
@@ -123,25 +121,13 @@ public class ChatsFragment extends Fragment {
                 });
     }
 
-    // Метод для проверки дубликатов чатов
     private boolean containsChat(String chatId) {
-        for (Chat chat : chats) {
-            if (chat.getChatId() != null && chat.getChatId().equals(chatId)) {
+        for (Map<String, Object> chatData : chats) {
+            String existingChatId = (String) chatData.get("chatId");
+            if (existingChatId != null && existingChatId.equals(chatId)) {
                 return true;
             }
         }
         return false;
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        // Удаляем слушатели при уничтожении фрагмента
-        if (chatsListener1 != null) {
-            FirebaseDatabase.getInstance().getReference("Chats").removeEventListener(chatsListener1);
-        }
-        if (chatsListener2 != null) {
-            FirebaseDatabase.getInstance().getReference("Chats").removeEventListener(chatsListener2);
-        }
     }
 }

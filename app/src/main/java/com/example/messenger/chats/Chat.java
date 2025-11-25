@@ -2,7 +2,6 @@ package com.example.messenger.chats;
 
 public class Chat {
 
-    private String chatId; // измените на chatId для consistency
     private String user1;
     private String user2;
 
@@ -13,14 +12,6 @@ public class Chat {
     public Chat(String user1, String user2) {
         this.user1 = user1;
         this.user2 = user2;
-    }
-
-    public String getChatId() {
-        return chatId;
-    }
-
-    public void setChatId(String chatId) {
-        this.chatId = chatId;
     }
 
     public String getUser1() {
