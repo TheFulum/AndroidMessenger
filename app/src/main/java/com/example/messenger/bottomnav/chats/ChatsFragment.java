@@ -1,72 +1,73 @@
 package com.example.messenger.bottomnav.chats;
 
-import androidx.fragment.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
-import java.util.ArrayList;
-import java.util.Objects;
-
+import com.example.messenger.R;
 import com.example.messenger.chats.Chat;
 import com.example.messenger.chats.ChatsAdapter;
-import com.example.messenger.databinding.FragmentChatsBinding;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.FirebaseDatabase;
+
+import java.util.ArrayList;
 
 public class ChatsFragment extends Fragment {
 
-    private FragmentChatsBinding binding;
+    private RecyclerView chatsRv;
+    private ArrayList<Chat> chats;
+    private ChatsAdapter chatsAdapter;
 
-    @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = FragmentChatsBinding.inflate(inflater, container, false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
 
-        ArrayList<Chat> chats = new ArrayList<>();
+        View view = inflater.inflate(R.layout.fragment_chats, container, false);
 
-        String uid = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
-        FirebaseDatabase.getInstance().getReference().addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                String chatsStr = Objects.requireNonNull(snapshot.child("Users").child(uid).child("chats").getValue()).toString();
-                String[] chatsIds = chatsStr.split(",");
-                if (chatsIds.length==0) return;
+        chatsRv = view.findViewById(R.id.chats_rv);
+        chatsRv.setLayoutManager(new LinearLayoutManager(getContext()));
 
-                for (String chatId : chatsIds){
-                    DataSnapshot chatSnapshot = snapshot.child("Chats").child(chatId);
-                    String userId1 = Objects.requireNonNull(chatSnapshot.child("user1").getValue()).toString();
-                    String userId2 = Objects.requireNonNull(chatSnapshot.child("user2").getValue()).toString();
+        chats = new ArrayList<>();
+        chatsAdapter = new ChatsAdapter(chats);
+        chatsRv.setAdapter(chatsAdapter);
 
-                    String chatUserId = (uid.equals(userId1)) ? userId2 : userId1;
-                    String chatName = Objects.requireNonNull(snapshot.child("Users").child(chatUserId).child("username").getValue()).toString();
+        loadChats();
 
-                    Chat chat = new Chat(chatId, chatName, userId1, userId2);
-                    chats.add(chat);
-                }
+        return view;
+    }
 
-                binding.chatsRv.setLayoutManager(new LinearLayoutManager(getContext()));
-                binding.chatsRv.setAdapter(new ChatsAdapter(chats));
-            }
+    private void loadChats() {
+        String currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(getContext(), "Failed to get user chats", Toast.LENGTH_SHORT).show();
-            }
-        });
+        FirebaseDatabase.getInstance().getReference("Chats")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) return;
 
-        return binding.getRoot();
+                    chats.clear();
+
+                    for (DataSnapshot snapshot : task.getResult().getChildren()) {
+                        Chat chat = snapshot.getValue(Chat.class);
+
+                        if (chat == null) continue;
+
+                        chat.setChat_id(snapshot.getKey());
+
+                        if (chat.getUser1().equals(currentUid) ||
+                                chat.getUser2().equals(currentUid)) {
+
+                            chats.add(chat);
+                        }
+                    }
+
+                    chatsAdapter.notifyDataSetChanged();
+                });
     }
 }

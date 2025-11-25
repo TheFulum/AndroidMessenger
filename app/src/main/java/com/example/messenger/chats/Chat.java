@@ -2,13 +2,18 @@ package com.example.messenger.chats;
 
 public class Chat {
 
-    private String chat_id, chat_name, userId1, userId2;
+    private String chat_id;
+    private String user1;
+    private String user2;
 
-    public Chat(String chat_id, String chat_name, String userId1, String userId2) {
+    public Chat() {
+        // нужен Firebase
+    }
+
+    public Chat(String chat_id, String user1, String user2) {
         this.chat_id = chat_id;
-        this.chat_name = chat_name;
-        this.userId1 = userId1;
-        this.userId2 = userId2;
+        this.user1 = user1;
+        this.user2 = user2;
     }
 
     public String getChat_id() {
@@ -19,28 +24,19 @@ public class Chat {
         this.chat_id = chat_id;
     }
 
-    public String getChat_name() {
-        return chat_name;
+    public String getUser1() {
+        return user1;
     }
 
-    public void setChat_name(String chat_name) {
-        this.chat_name = chat_name;
+    public void setUser1(String user1) {
+        this.user1 = user1;
     }
 
-    public String getUserId1() {
-        return userId1;
+    public String getUser2() {
+        return user2;
     }
 
-    public void setUserId1(String userId1) {
-        this.userId1 = userId1;
+    public void setUser2(String user2) {
+        this.user2 = user2;
     }
-
-    public String getUserId2() {
-        return userId2;
-    }
-
-    public void setUserId2(String userId2) {
-        this.userId2 = userId2;
-    }
-
 }
