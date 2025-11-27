@@ -39,47 +39,59 @@ public class ChatActivity extends AppCompatActivity {
         loadMessages(chatId);
 
         binding.sendMessageBtn.setOnClickListener(v -> {
-            String message = binding.messageEt.getText().toString();
-            if (message.isEmpty()){
-                Toast.makeText(this, "Message field cannot be empty", Toast.LENGTH_SHORT).show();
+
+            String message = binding.messageEt.getText().toString().trim();
+
+            if (message.isEmpty()) {
+                Toast.makeText(this, "Message cannot be empty", Toast.LENGTH_SHORT).show();
                 return;
             }
+
+            binding.messageEt.setText("");
 
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm");
             String date = simpleDateFormat.format(new Date());
 
-            binding.messageEt.setText(""); //clearing the edit text
             sendMessage(chatId, message, date);
         });
     }
 
     private void sendMessage(String chatId, String message, String date){
-        if (chatId==null) return;
+        if (chatId == null) return;
 
         HashMap<String, String> messageInfo = new HashMap<>();
         messageInfo.put("text", message);
         messageInfo.put("ownerId", Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid());
         messageInfo.put("date", date);
 
-        FirebaseDatabase.getInstance().getReference().child("Chats").child(chatId)
-                .child("messages").push().setValue(messageInfo);
+        FirebaseDatabase.getInstance()
+                .getReference()
+                .child("Chats")
+                .child(chatId)
+                .child("messages")
+                .push()
+                .setValue(messageInfo);
     }
 
     private void loadMessages(String chatId){
-        if (chatId==null) return;
+        if (chatId == null) return;
 
-        FirebaseDatabase.getInstance().getReference().child("Chats")
-                .child(chatId).child("messages").addValueEventListener(new ValueEventListener() {
+        FirebaseDatabase.getInstance().getReference()
+                .child("Chats")
+                .child(chatId)
+                .child("messages")
+                .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (!snapshot.exists()) return;
 
                         List<Message> messages = new ArrayList<>();
-                        for (DataSnapshot messageSnapshot : snapshot.getChildren()){
+
+                        for (DataSnapshot messageSnapshot : snapshot.getChildren()) {
                             String messageId = messageSnapshot.getKey();
-                            String ownerId = messageSnapshot.child("ownerId").getValue().toString();
-                            String text = messageSnapshot.child("text").getValue().toString();
-                            String date = messageSnapshot.child("date").getValue().toString();
+                            String ownerId = messageSnapshot.child("ownerId").getValue(String.class);
+                            String text = messageSnapshot.child("text").getValue(String.class);
+                            String date = messageSnapshot.child("date").getValue(String.class);
 
                             messages.add(new Message(messageId, ownerId, text, date));
                         }
@@ -89,9 +101,7 @@ public class ChatActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
-                    }
+                    public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 }

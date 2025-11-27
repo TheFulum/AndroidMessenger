@@ -27,7 +27,7 @@ import java.util.Map;
 public class ChatsFragment extends Fragment {
 
     private RecyclerView chatsRv;
-    private ArrayList<Map<String, Object>> chats; // Теперь храним chatId и Chat объект
+    private ArrayList<Map<String, Object>> chats;
     private ChatsAdapter chatsAdapter;
 
     @Override
@@ -70,8 +70,8 @@ public class ChatsFragment extends Fragment {
                             Chat chat = chatSnap.getValue(Chat.class);
                             if (chat != null) {
                                 Map<String, Object> chatData = new HashMap<>();
-                                chatData.put("chatId", chatSnap.getKey()); // Сохраняем ID чата
-                                chatData.put("chat", chat); // Сохраняем объект чата
+                                chatData.put("chatId", chatSnap.getKey());
+                                chatData.put("chat", chat);
 
                                 if (!containsChat(chatSnap.getKey())) {
                                     chats.add(chatData);
