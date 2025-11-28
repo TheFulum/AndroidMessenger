@@ -2,35 +2,36 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    xmlns:tools="http://schemas.android.com/tools">
+    android:padding="6dp">
 
     <LinearLayout
+        android:id="@+id/bubble"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginTop="10dp"
-        android:layout_centerVertical="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginEnd="15dp"
-        android:padding="10dp"
-        android:background="@drawable/message_from_curr_user">
+        android:layout_marginEnd="12dp"
+        android:layout_marginStart="50dp"
+        android:orientation="vertical"
+        android:background="@drawable/msg_bubble_me"
+        android:padding="12dp">
 
         <TextView
             android:id="@+id/message_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="17sp"
-            tools:text="This is message text"/>
+            android:textSize="16sp"
+            android:textColor="@color/white"
+            android:maxWidth="260dp"
+            android:lineSpacingExtra="2dp" />
 
         <TextView
             android:id="@+id/message_date_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            tools:text="12.01.2022 13:30"
-            android:textSize="13sp"
-            android:layout_marginTop="10dp"/>
+            android:textSize="12sp"
+            android:textColor="#D6D6D6"
+            android:layout_marginTop="6dp"
+            android:layout_gravity="end" />
 
     </LinearLayout>
-
 </RelativeLayout>

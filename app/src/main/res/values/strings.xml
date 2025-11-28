@@ -9,6 +9,6 @@
     <string name="sign_up">Sign Up</string>
     <string name="username">Username</string>
     <string name="profile">Profile</string>
-    <string name="new_chat">New chat</string>
+    <string name="users">Users</string>
     <string name="chats">Chats</string>
 </resources>
