@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true">
 
-    <!-- ======= ВЕРХНЯЯ ПАНЕЛЬ ======= -->
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/top_panel"
         android:layout_width="0dp"
@@ -16,7 +15,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- КНОПКА НАЗАД -->
         <ImageButton
             android:id="@+id/back_btn"
             android:layout_width="35dp"
@@ -28,7 +26,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"/>
 
-        <!-- ИМЯ СОБЕСЕДНИКА -->
         <TextView
             android:id="@+id/chat_username_tv"
             android:layout_width="wrap_content"
@@ -41,43 +38,63 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"/>
-
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- ===== СПИСОК СООБЩЕНИЙ ===== -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/messages_rv"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:paddingBottom="100dp"
-            app:layout_constraintTop_toBottomOf="@id/top_panel"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+    <!-- СПИСОК СООБЩЕНИЙ -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/messages_rv"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:paddingBottom="5dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/top_panel"
+        app:layout_constraintBottom_toTopOf="@id/input_container" />
 
+    <!-- НИЖНЯЯ ПАНЕЛЬ С РАСТЯГИВАЮЩИМСЯ ПОЛЕМ -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/input_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- ===== ПОЛЕ ВВОДА ===== -->
+        <!-- Растягивающееся поле ввода (до 6 строк) -->
         <EditText
             android:id="@+id/message_et"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:background="@drawable/message_et_shape"
             android:hint="Type your message..."
-            android:padding="13dp"
-            android:singleLine="true"
-            android:imeOptions="actionSend"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:background="@drawable/message_input_bg"
+            android:padding="14dp"
+            android:textSize="16sp"
+            android:gravity="top|start"
+            android:inputType="textCapSentences|textMultiLine|textAutoCorrect"
+            android:maxLines="6"
+            android:minHeight="48dp"
+            android:scrollbars="vertical"
+            android:overScrollMode="always"
+            android:imeOptions="actionSend|flagNoExtractUi"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/send_message_btn"/>
+            app:layout_constraintEnd_toStartOf="@id/send_message_btn"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
-        <!-- ===== КНОПКА ОТПРАВКИ ===== -->
+        <!-- Кнопка отправки -->
         <ImageButton
             android:id="@+id/send_message_btn"
-            android:layout_width="45dp"
-            android:layout_height="45dp"
-            android:background="@android:color/transparent"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:src="@drawable/send_icon"
-            android:layout_marginEnd="10dp"
-            app:layout_constraintBottom_toBottomOf="@+id/message_et"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:contentDescription="Отправить"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
