@@ -1,6 +1,5 @@
 package com.example.messenger.bottomnav.chats;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -10,13 +9,14 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.example.messenger.ChatActivity;
 import com.example.messenger.R;
 import com.example.messenger.chats.Chat;
 import com.example.messenger.chats.ChatsAdapter;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.*;
 
 import java.text.SimpleDateFormat;
@@ -41,11 +41,17 @@ public class ChatsFragment extends Fragment {
         chatsRv = view.findViewById(R.id.chats_rv);
         searchEt = view.findViewById(R.id.search_et);
 
-        myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            // Сессия ещё не восстановилась → Просто не грузим чаты
+            return view;
+        }
+
+        myUid = user.getUid();
 
         chatsRv.setLayoutManager(new LinearLayoutManager(getContext()));
-        chatsRv.addItemDecoration(new androidx.recyclerview.widget.DividerItemDecoration(
-                getContext(), androidx.recyclerview.widget.DividerItemDecoration.VERTICAL));
+        chatsRv.addItemDecoration(new DividerItemDecoration(
+                getContext(), DividerItemDecoration.VERTICAL));
 
         chatsAdapter = new ChatsAdapter(filteredChats);
         chatsRv.setAdapter(chatsAdapter);
@@ -61,6 +67,7 @@ public class ChatsFragment extends Fragment {
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
+
                         chats.clear();
 
                         for (DataSnapshot chatSnap : snapshot.getChildren()) {
@@ -105,23 +112,27 @@ public class ChatsFragment extends Fragment {
             String otherUid = (String) chatData.get("otherUid");
             String chatId = (String) chatData.get("chatId");
 
-            // 1. Загружаем имя
-            FirebaseDatabase.getInstance().getReference("Users").child(otherUid).child("username")
+            FirebaseDatabase.getInstance().getReference("Users")
+                    .child(otherUid)
+                    .child("username")
                     .addListenerForSingleValueEvent(new ValueEventListener() {
+
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snap) {
                             String username = snap.getValue(String.class);
                             chatData.put("username", username != null ? username : "Пользователь");
 
-                            // 2. Загружаем последнее сообщение
+                            // Загружаем последнее сообщение
                             FirebaseDatabase.getInstance()
                                     .getReference("Chats")
                                     .child(chatId)
                                     .child("messages")
                                     .limitToLast(1)
                                     .addListenerForSingleValueEvent(new ValueEventListener() {
+
                                         @Override
                                         public void onDataChange(@NonNull DataSnapshot msgSnap) {
+
                                             String lastText = "Начните общение";
                                             String lastDate = "";
                                             long timestamp = 0;
@@ -138,7 +149,7 @@ public class ChatsFragment extends Fragment {
                                                 }
                                             }
 
-                                            chatData.put("lastMessage", lastText != null ? lastText : "Фото");
+                                            chatData.put("lastMessage", lastText);
                                             chatData.put("lastDate", lastDate);
                                             chatData.put("timestamp", timestamp);
 
@@ -164,11 +175,7 @@ public class ChatsFragment extends Fragment {
     }
 
     private void sortAndRefresh() {
-        chats.sort((a, b) -> Long.compare(
-                (long) b.get("timestamp"),
-                (long) a.get("timestamp")
-        ));
-
+        chats.sort((a, b) -> Long.compare((long) b.get("timestamp"), (long) a.get("timestamp")));
         applyFilter();
     }
 
@@ -181,15 +188,17 @@ public class ChatsFragment extends Fragment {
     }
 
     private void applyFilter() {
-        String query = searchEt.getText().toString().toLowerCase(Locale.getDefault());
+        String q = searchEt.getText().toString().toLowerCase();
+
         filteredChats.clear();
 
         for (Map<String, Object> chat : chats) {
             String username = ((String) chat.get("username")).toLowerCase();
-            if (username.contains(query)) {
+            if (username.contains(q)) {
                 filteredChats.add(chat);
             }
         }
+
         chatsAdapter.notifyDataSetChanged();
     }
 }

@@ -2,6 +2,7 @@ package com.example.messenger;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -21,6 +22,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Если пользователь уже вошёл — сразу в приложение
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             startActivity(new Intent(LoginActivity.this, MainActivity.class));
             finish();
@@ -37,33 +39,53 @@ public class LoginActivity extends AppCompatActivity {
             return insets;
         });
 
-        binding.loginBtn.setOnClickListener(v -> {
-            String email = binding.emailEt.getText().toString().trim();
-            String password = binding.passwordEt.getText().toString().trim();
+        // Кнопка входа
+        binding.loginBtn.setOnClickListener(v -> loginUser());
 
-            if (email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(getApplicationContext(), "Fields cannot be empty", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            FirebaseAuth.getInstance()
-                    .signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                            finish();
-                        } else {
-                            Toast.makeText(
-                                    this,
-                                    "Login failed: " + task.getException().getMessage(),
-                                    Toast.LENGTH_LONG
-                            ).show();
-                        }
-                    });
-        });
-
+        // Кнопка перехода к регистрации
         binding.goToRegisterActivityTv.setOnClickListener(v ->
                 startActivity(new Intent(LoginActivity.this, RegisterActivity.class))
         );
+    }
+
+    private void loginUser() {
+        String email = binding.emailEt.getText().toString().trim();
+        String password = binding.passwordEt.getText().toString().trim();
+
+        if (email.isEmpty() || password.isEmpty()) {
+            Toast.makeText(getApplicationContext(), "Fields cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showLoader(true);
+
+        FirebaseAuth.getInstance()
+                .signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+
+                    showLoader(false);
+
+                    if (task.isSuccessful()) {
+                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                        finish();
+                    } else {
+                        Toast.makeText(
+                                this,
+                                "Login failed: " + task.getException().getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                    }
+                });
+    }
+
+    private void showLoader(boolean show) {
+        binding.loaderBg.setVisibility(show ? View.VISIBLE : View.GONE);
+        binding.loader.setVisibility(show ? View.VISIBLE : View.GONE);
+
+        // Блокируем кнопки и ввод
+        binding.loginBtn.setEnabled(!show);
+        binding.emailEt.setEnabled(!show);
+        binding.passwordEt.setEnabled(!show);
+        binding.goToRegisterActivityTv.setEnabled(!show);
     }
 }
