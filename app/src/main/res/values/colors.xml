@@ -6,4 +6,5 @@
 
     <color name="light_blue">#C0CCEC</color>
     <color name="grey">#f3f3f3</color>
+    <color name="window_background">#F7F8FA</color>
 </resources>
