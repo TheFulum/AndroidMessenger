@@ -146,7 +146,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
-
         DatabaseReference messagesRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
                 .child(chatId)
@@ -156,8 +155,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Message> messages = new ArrayList<>();
-
-                Message lastMessage = null;
+                Message lastMsg = null;
 
                 for (DataSnapshot msgSnapshot : snapshot.getChildren()) {
                     String id = msgSnapshot.getKey();
@@ -166,13 +164,12 @@ public class ChatActivity extends AppCompatActivity {
                     String date = msgSnapshot.child("date").getValue(String.class);
 
                     if (text != null) {
-                        Message msg = new Message(id, ownerId, text, date);
-                        messages.add(msg);
-                        lastMessage = msg;
+                        Message m = new Message(id, ownerId, text, date);
+                        messages.add(m);
+                        lastMsg = m;
                     }
                 }
 
-                // Заполняем RecyclerView
                 LinearLayoutManager lm = new LinearLayoutManager(ChatActivity.this);
                 lm.setStackFromEnd(true);
                 binding.messagesRv.setLayoutManager(lm);
@@ -180,46 +177,38 @@ public class ChatActivity extends AppCompatActivity {
                 MessagesAdapter adapter = new MessagesAdapter(messages);
                 binding.messagesRv.setAdapter(adapter);
 
-                // Автоскролл
                 if (adapter.getItemCount() > 0) {
                     binding.messagesRv.post(() ->
                             binding.messagesRv.smoothScrollToPosition(adapter.getItemCount() - 1)
                     );
                 }
 
-                // --- Уведомление если сообщение от другого юзера ---
-                if (lastMessage != null && !lastMessage.getOwnerId().equals(currentUserId)) {
-
-                    // Загрузка имени отправителя
-                    FirebaseDatabase.getInstance()
-                            .getReference("Users")
-                            .child(lastMessage.getOwnerId())
-                            .child("username")
-                            .addListenerForSingleValueEvent(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(@NonNull DataSnapshot snap) {
-
-                                    String senderName = snap.getValue(String.class);
-
-                                    NotificationHelper.showMessageNotification(
-                                            ChatActivity.this,
-                                            senderName != null ? senderName : "Новое сообщение",
-                                            lastMessage.getText(),
-                                            chatId
-                                    );
-                                }
-
-                                @Override
-                                public void onCancelled(@NonNull DatabaseError error) {}
-                            });
+                // =========== УВЕДОМЛЕНИЕ, ЕСЛИ ЧАТ НЕ ОТКРЫТ ===========
+                if (lastMsg != null &&
+                        !lastMsg.getOwnerId().equals(currentUserId) && // не моё сообщение
+                        !isChatVisible) { // chatActivity свернута
+                    sendLocalNotification(lastMsg.getText());
                 }
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChatActivity.this, "Ошибка загрузки сообщений", Toast.LENGTH_SHORT).show();
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
+    }
+
+    private void sendLocalNotification(String text) {
+        NotificationUtils.createChannel(this);
+
+        NotificationCompat.Builder builder =
+                new NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID)
+                        .setSmallIcon(R.drawable.message_icon)
+                        .setContentTitle("New message")
+                        .setContentText(text)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true);
+
+        NotificationManagerCompat manager = NotificationManagerCompat.from(this);
+        manager.notify((int) System.currentTimeMillis(), builder.build());
     }
 
     @Override
