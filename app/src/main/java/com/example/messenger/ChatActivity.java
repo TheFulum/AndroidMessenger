@@ -2,14 +2,11 @@ package com.example.messenger;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.os.Bundle;
 import android.widget.Toast;
 
-import com.example.messenger.notifications.NotificationUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -33,8 +30,6 @@ public class ChatActivity extends AppCompatActivity {
     private ActivityChatBinding binding;
     private String chatId;
     private String currentUserId;
-    private boolean isChatVisible = false;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,26 +68,33 @@ public class ChatActivity extends AppCompatActivity {
 
     private void sendMessage() {
         String text = binding.messageEt.getText().toString().trim();
-        if (text.isEmpty()) {
-            Toast.makeText(this, "Сообщение не может быть пустым", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (text.isEmpty()) return;
 
-        String date = new SimpleDateFormat("dd.MM.yyyy HH:mm").format(new Date());
+        long now = System.currentTimeMillis();
 
         HashMap<String, Object> msg = new HashMap<>();
         msg.put("text", text);
         msg.put("ownerId", currentUserId);
-        msg.put("date", date);
+        msg.put("date", new SimpleDateFormat("dd.MM.yyyy HH:mm").format(new Date()));
 
-        FirebaseDatabase.getInstance()
+        DatabaseReference msgRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
                 .child(chatId)
                 .child("messages")
-                .push()
-                .setValue(msg);
+                .push();
 
-        binding.messageEt.setText("");
+        msgRef.setValue(msg).addOnSuccessListener(aVoid -> {
+            // ← ЭТО ОБЯЗАТЕЛЬНО ДЛЯ СОРТИРОВКИ ЧАТОВ
+            HashMap<String, Object> update = new HashMap<>();
+            update.put("lastMessageTime", now);
+            update.put("lastMessagePreview", text.length() > 50 ? text.substring(0, 47) + "..." : text);
+
+            FirebaseDatabase.getInstance().getReference("Chats")
+                    .child(chatId)
+                    .updateChildren(update);
+
+            binding.messageEt.setText("");
+        });
     }
 
     private void findAndLoadReceiverUsername() {
@@ -155,7 +157,6 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Message> messages = new ArrayList<>();
-                Message lastMsg = null;
 
                 for (DataSnapshot msgSnapshot : snapshot.getChildren()) {
                     String id = msgSnapshot.getKey();
@@ -164,9 +165,7 @@ public class ChatActivity extends AppCompatActivity {
                     String date = msgSnapshot.child("date").getValue(String.class);
 
                     if (text != null) {
-                        Message m = new Message(id, ownerId, text, date);
-                        messages.add(m);
-                        lastMsg = m;
+                        messages.add(new Message(id, ownerId, text, date));
                     }
                 }
 
@@ -177,51 +176,18 @@ public class ChatActivity extends AppCompatActivity {
                 MessagesAdapter adapter = new MessagesAdapter(messages);
                 binding.messagesRv.setAdapter(adapter);
 
+                // Скролл вниз
                 if (adapter.getItemCount() > 0) {
                     binding.messagesRv.post(() ->
                             binding.messagesRv.smoothScrollToPosition(adapter.getItemCount() - 1)
                     );
                 }
-
-                // =========== УВЕДОМЛЕНИЕ, ЕСЛИ ЧАТ НЕ ОТКРЫТ ===========
-                if (lastMsg != null &&
-                        !lastMsg.getOwnerId().equals(currentUserId) && // не моё сообщение
-                        !isChatVisible) { // chatActivity свернута
-                    sendLocalNotification(lastMsg.getText());
-                }
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(ChatActivity.this, "Ошибка загрузки сообщений", Toast.LENGTH_SHORT).show();
+            }
         });
     }
-
-    private void sendLocalNotification(String text) {
-        NotificationUtils.createChannel(this);
-
-        NotificationCompat.Builder builder =
-                new NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID)
-                        .setSmallIcon(R.drawable.message_icon)
-                        .setContentTitle("New message")
-                        .setContentText(text)
-                        .setPriority(NotificationCompat.PRIORITY_HIGH)
-                        .setAutoCancel(true);
-
-        NotificationManagerCompat manager = NotificationManagerCompat.from(this);
-        manager.notify((int) System.currentTimeMillis(), builder.build());
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        isChatVisible = true;
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        isChatVisible = false;
-    }
-
-
 }
