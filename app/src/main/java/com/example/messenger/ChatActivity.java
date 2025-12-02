@@ -2,11 +2,14 @@ package com.example.messenger;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import android.os.Bundle;
 import android.widget.Toast;
 
+import com.example.messenger.notifications.NotificationUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -30,6 +33,8 @@ public class ChatActivity extends AppCompatActivity {
     private ActivityChatBinding binding;
     private String chatId;
     private String currentUserId;
+    private boolean isChatVisible = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -141,6 +146,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadMessages() {
+
         DatabaseReference messagesRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
                 .child(chatId)
@@ -151,6 +157,8 @@ public class ChatActivity extends AppCompatActivity {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Message> messages = new ArrayList<>();
 
+                Message lastMessage = null;
+
                 for (DataSnapshot msgSnapshot : snapshot.getChildren()) {
                     String id = msgSnapshot.getKey();
                     String ownerId = msgSnapshot.child("ownerId").getValue(String.class);
@@ -158,10 +166,13 @@ public class ChatActivity extends AppCompatActivity {
                     String date = msgSnapshot.child("date").getValue(String.class);
 
                     if (text != null) {
-                        messages.add(new Message(id, ownerId, text, date));
+                        Message msg = new Message(id, ownerId, text, date);
+                        messages.add(msg);
+                        lastMessage = msg;
                     }
                 }
 
+                // Заполняем RecyclerView
                 LinearLayoutManager lm = new LinearLayoutManager(ChatActivity.this);
                 lm.setStackFromEnd(true);
                 binding.messagesRv.setLayoutManager(lm);
@@ -169,11 +180,38 @@ public class ChatActivity extends AppCompatActivity {
                 MessagesAdapter adapter = new MessagesAdapter(messages);
                 binding.messagesRv.setAdapter(adapter);
 
-                // Скролл вниз
+                // Автоскролл
                 if (adapter.getItemCount() > 0) {
                     binding.messagesRv.post(() ->
                             binding.messagesRv.smoothScrollToPosition(adapter.getItemCount() - 1)
                     );
+                }
+
+                // --- Уведомление если сообщение от другого юзера ---
+                if (lastMessage != null && !lastMessage.getOwnerId().equals(currentUserId)) {
+
+                    // Загрузка имени отправителя
+                    FirebaseDatabase.getInstance()
+                            .getReference("Users")
+                            .child(lastMessage.getOwnerId())
+                            .child("username")
+                            .addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot snap) {
+
+                                    String senderName = snap.getValue(String.class);
+
+                                    NotificationHelper.showMessageNotification(
+                                            ChatActivity.this,
+                                            senderName != null ? senderName : "Новое сообщение",
+                                            lastMessage.getText(),
+                                            chatId
+                                    );
+                                }
+
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError error) {}
+                            });
                 }
             }
 
@@ -183,4 +221,18 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        isChatVisible = true;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isChatVisible = false;
+    }
+
+
 }

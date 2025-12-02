@@ -1,6 +1,9 @@
 package com.example.messenger;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -88,4 +91,16 @@ public class LoginActivity extends AppCompatActivity {
         binding.passwordEt.setEnabled(!show);
         binding.goToRegisterActivityTv.setEnabled(!show);
     }
+
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
+    }
+
+
 }
