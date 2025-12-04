@@ -76,6 +76,7 @@ public class ChatActivity extends AppCompatActivity {
         msg.put("text", text);
         msg.put("ownerId", currentUserId);
         msg.put("date", new SimpleDateFormat("dd.MM.yyyy HH:mm").format(new Date()));
+        msg.put("timestamp", now);
 
         DatabaseReference msgRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
@@ -163,9 +164,10 @@ public class ChatActivity extends AppCompatActivity {
                     String ownerId = msgSnapshot.child("ownerId").getValue(String.class);
                     String text = msgSnapshot.child("text").getValue(String.class);
                     String date = msgSnapshot.child("date").getValue(String.class);
+                    Long timestamp = msgSnapshot.child("timestamp").getValue(Long.class);  // ← Читать (может быть null для старых)
 
                     if (text != null) {
-                        messages.add(new Message(id, ownerId, text, date));
+                        messages.add(new Message(id, ownerId, text, date, timestamp != null ? timestamp : 0L));  // ← Добавь timestamp
                     }
                 }
 

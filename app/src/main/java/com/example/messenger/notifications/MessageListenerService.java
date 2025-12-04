@@ -22,15 +22,6 @@ public class MessageListenerService extends Service {
         // создаём канал
         NotificationHelper.createChannel(this);
 
-        // foreground notification
-        Notification notification = new NotificationCompat.Builder(this, NotificationHelper.CHANNEL_ID)
-                .setContentTitle("Messenger")
-                .setContentText("Слушаю сообщения…")
-                .setSmallIcon(R.drawable.ic_notification)
-                .build();
-
-        startForeground(1001, notification);
-
         String myId = FirebaseAuth.getInstance().getUid();
         if (myId == null) return;
 
@@ -58,7 +49,12 @@ public class MessageListenerService extends Service {
                 .child(chatId)
                 .child("messages");
 
-        ref.addChildEventListener(new ChildEventListener() {
+        long currentTime = System.currentTimeMillis();  // Время запуска слушателя
+
+        // Фильтр: только сообщения после currentTime (новые)
+        Query query = ref.orderByChild("timestamp").startAfter(currentTime - 1000);  // -1000 на случай задержки часов
+
+        query.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot snapshot, String prev) {
 
