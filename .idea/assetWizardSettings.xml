@@ -79,7 +79,7 @@
                                             <option name="values">
                                               <map>
                                                 <entry key="color" value="000000" />
-                                                <entry key="imagePath" value="D:\data\!more\Media\anime\0eac658d977cd3f9ea1d3c5819f7b268.png" />
+                                                <entry key="imagePath" value="D:\data\!more\Media\anime\7c6e3dbb51dbd068d1d6220671c7fe64.png" />
                                               </map>
                                             </option>
                                           </PersistentState>
@@ -107,6 +107,11 @@
                                           </PersistentState>
                                         </value>
                                       </entry>
+                                    </map>
+                                  </option>
+                                  <option name="values">
+                                    <map>
+                                      <entry key="outputName" value="ic_launcher_foreground" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -300,7 +305,7 @@
                                 <PersistentState>
                                   <option name="values">
                                     <map>
-                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialicons/arrow_back/baseline_arrow_back_24.xml" />
+                                      <entry key="url" value="file:/$USER_HOME$/AppData/Local/Android/Sdk/icons/material/materialsymbolsoutlined/account_circle/outline_account_circle_24.xml" />
                                     </map>
                                   </option>
                                 </PersistentState>
@@ -310,7 +315,7 @@
                         </option>
                         <option name="values">
                           <map>
-                            <entry key="outputName" value="ic_back" />
+                            <entry key="outputName" value="outline_account_circle_24" />
                             <entry key="sourceFile" value="D:\data\source\Android\Messenger" />
                           </map>
                         </option>

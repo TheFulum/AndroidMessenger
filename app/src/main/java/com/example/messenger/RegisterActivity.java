@@ -2,6 +2,8 @@ package com.example.messenger;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Toast;
 
@@ -16,11 +18,11 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.HashMap;
-import java.util.Objects;
 
 public class RegisterActivity extends AppCompatActivity {
 
     private ActivityRegisterBinding binding;
+    private boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,22 +31,59 @@ public class RegisterActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(binding.getRoot());
 
+        setupWindowInsets();
+        setupUI();
+    }
+
+    private void setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+    }
 
-        binding.signUpBtn.setOnClickListener(v -> registerUser());
+    private void setupUI() {
+        updateSignUpButtonState();
+
+        TextWatcher textWatcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updateSignUpButtonState();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        };
+
+        binding.usernameEt.addTextChangedListener(textWatcher);
+        binding.emailEt.addTextChangedListener(textWatcher);
+        binding.passwordEt.addTextChangedListener(textWatcher);
+
+        binding.signUpBtn.setOnClickListener(v -> {
+            if (!isLoading) registerUser();
+        });
 
         binding.signUpBackBtn.setOnClickListener(v -> {
-            startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
-            finish();
+            if (!isLoading) finish();
         });
     }
 
-    private void registerUser() {
+    private void updateSignUpButtonState() {
+        String username = binding.usernameEt.getText().toString().trim();
+        String email = binding.emailEt.getText().toString().trim();
+        String password = binding.passwordEt.getText().toString().trim();
 
+        boolean isValid = !username.isEmpty() && !email.isEmpty() && !password.isEmpty() && password.length() >= 6;
+
+        binding.signUpBtn.setEnabled(isValid && !isLoading);
+        binding.signUpBtn.setAlpha(isValid ? 1.0f : 0.5f);
+    }
+
+    private void registerUser() {
         String email = binding.emailEt.getText().toString().trim();
         String password = binding.passwordEt.getText().toString().trim();
         String username = binding.usernameEt.getText().toString().trim();
@@ -54,63 +93,88 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        showLoader();
+        if (username.length() < 3) {
+            Toast.makeText(this, "Username must be at least 3 characters", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (password.length() < 6) {
+            Toast.makeText(this, "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(this, "Please enter a valid email", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        showLoader(true);
 
         FirebaseAuth.getInstance()
                 .createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
-
-                    if (task.isSuccessful()) {
-
-                        String uid = Objects.requireNonNull(
-                                FirebaseAuth.getInstance().getCurrentUser()
-                        ).getUid();
-
-                        HashMap<String, Object> userInfo = new HashMap<>();
-                        userInfo.put("uid", uid);
-                        userInfo.put("username", username);
-                        userInfo.put("email", email);
-
-                        FirebaseDatabase.getInstance()
-                                .getReference()
-                                .child("Users")
-                                .child(uid)
-                                .setValue(userInfo)
-                                .addOnSuccessListener(unused -> {
-
-                                    hideLoader();
-
-                                    Toast.makeText(this,
-                                            "Account successfully created!",
-                                            Toast.LENGTH_SHORT
-                                    ).show();
-
-                                    startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
-                                    finish();
-                                });
-
+                    if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
+                        String uid = task.getResult().getUser().getUid();
+                        saveUserToDatabase(uid, username, email);
                     } else {
-
-                        hideLoader();
-
-                        Toast.makeText(
-                                this,
-                                "Error: " + task.getException().getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show();
+                        showLoader(false);
+                        String errorMessage = task.getException() != null ? task.getException().getMessage() : "Registration failed";
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
-    private void showLoader() {
-        binding.loaderBg.setVisibility(View.VISIBLE);
-        binding.loader.setVisibility(View.VISIBLE);
-        binding.getRoot().setEnabled(false);
+    private void saveUserToDatabase(String uid, String username, String email) {
+        HashMap<String, Object> userInfo = new HashMap<>();
+        userInfo.put("uid", uid);
+        userInfo.put("username", username);
+        userInfo.put("email", email);
+
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(uid)
+                .setValue(userInfo)
+                .addOnSuccessListener(unused -> {
+                    showLoader(false);
+                    Toast.makeText(this, "Account successfully created!", Toast.LENGTH_SHORT).show();
+                    navigateToLogin();
+                })
+                .addOnFailureListener(e -> {
+                    showLoader(false);
+                    Toast.makeText(this, "Error saving user data: " + e.getMessage(), Toast.LENGTH_LONG).show();
+
+                    // Удаляем аккаунт из Auth, если не удалось сохранить в БД
+                    if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                        FirebaseAuth.getInstance().getCurrentUser().delete();
+                    }
+                });
     }
 
-    private void hideLoader() {
-        binding.loaderBg.setVisibility(View.GONE);
-        binding.loader.setVisibility(View.GONE);
-        binding.getRoot().setEnabled(true);
+    private void navigateToLogin() {
+        Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void showLoader(boolean show) {
+        isLoading = show;
+
+        binding.loaderBg.setVisibility(show ? View.VISIBLE : View.GONE);
+        binding.loader.setVisibility(show ? View.VISIBLE : View.GONE);
+
+        binding.signUpBtn.setEnabled(!show);
+        binding.usernameEt.setEnabled(!show);
+        binding.emailEt.setEnabled(!show);
+        binding.passwordEt.setEnabled(!show);
+        binding.signUpBackBtn.setEnabled(!show);
+
+        if (!show) updateSignUpButtonState();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        binding = null;
     }
 }

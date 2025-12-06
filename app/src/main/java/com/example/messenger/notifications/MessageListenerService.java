@@ -1,14 +1,12 @@
 package com.example.messenger.notifications;
 
-import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 
-import com.example.messenger.R;
 import com.example.messenger.message.Message;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
@@ -19,7 +17,7 @@ public class MessageListenerService extends Service {
     public void onCreate() {
         super.onCreate();
 
-        // создаём канал
+        // Создаём канал для уведомлений сообщений
         NotificationHelper.createChannel(this);
 
         String myId = FirebaseAuth.getInstance().getUid();
@@ -28,57 +26,88 @@ public class MessageListenerService extends Service {
         DatabaseReference chatsRef = FirebaseDatabase.getInstance().getReference("Chats");
 
         chatsRef.get().addOnSuccessListener(snapshot -> {
-
             for (DataSnapshot chat : snapshot.getChildren()) {
-
                 String chatId = chat.getKey();
                 if (chatId == null) continue;
 
-                // chatId формата: user1_user2
-                if (!chatId.contains(myId)) continue;
+                // Проверяем, участвует ли текущий пользователь в чате
+                String user1 = chat.child("user1").getValue(String.class);
+                String user2 = chat.child("user2").getValue(String.class);
 
-                listenForMessages(chatId, myId);
+                if (myId.equals(user1) || myId.equals(user2)) {
+                    String otherUserId = myId.equals(user1) ? user2 : user1;
+                    listenForMessages(chatId, myId, otherUserId);
+                }
             }
         });
     }
 
-    private void listenForMessages(String chatId, String myId) {
-
+    private void listenForMessages(String chatId, String myId, String otherUserId) {
         DatabaseReference ref = FirebaseDatabase.getInstance()
                 .getReference("Chats")
                 .child(chatId)
                 .child("messages");
 
-        long currentTime = System.currentTimeMillis();  // Время запуска слушателя
+        long currentTime = System.currentTimeMillis();
 
         // Фильтр: только сообщения после currentTime (новые)
-        Query query = ref.orderByChild("timestamp").startAfter(currentTime - 1000);  // -1000 на случай задержки часов
+        Query query = ref.orderByChild("timestamp").startAfter(currentTime - 1000);
 
         query.addChildEventListener(new ChildEventListener() {
             @Override
-            public void onChildAdded(DataSnapshot snapshot, String prev) {
-
+            public void onChildAdded(@NonNull DataSnapshot snapshot, String prev) {
                 Message msg = snapshot.getValue(Message.class);
                 if (msg == null) return;
 
+                // Игнорируем свои сообщения
                 if (msg.getOwnerId() != null && msg.getOwnerId().equals(myId))
                     return;
 
-                NotificationHelper.showMessageNotification(
-                        MessageListenerService.this,
-                        "Новое сообщение",
-                        msg.getText()
-                );
+                // Загружаем имя отправителя и показываем уведомление
+                loadUsernameAndNotify(otherUserId, msg.getText());
             }
 
-            @Override public void onChildChanged(DataSnapshot s, String p) {}
-            @Override public void onChildRemoved(DataSnapshot s) {}
-            @Override public void onChildMoved(DataSnapshot s, String p) {}
-            @Override public void onCancelled(DatabaseError error) {}
+            @Override public void onChildChanged(@NonNull DataSnapshot s, String p) {}
+            @Override public void onChildRemoved(@NonNull DataSnapshot s) {}
+            @Override public void onChildMoved(@NonNull DataSnapshot s, String p) {}
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
+    }
+
+    private void loadUsernameAndNotify(String userId, String messageText) {
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(userId)
+                .child("username")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String username = snapshot.getValue(String.class);
+                        if (username == null) username = "Unknown User";
+
+                        // Показываем уведомление с именем отправителя
+                        NotificationHelper.showMessageNotification(
+                                MessageListenerService.this,
+                                username,  // ← Имя в заголовке
+                                messageText  // ← Текст сообщения
+                        );
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        // Если не удалось загрузить имя, показываем хоть что-то
+                        NotificationHelper.showMessageNotification(
+                                MessageListenerService.this,
+                                "New Message",
+                                messageText
+                        );
+                    }
+                });
     }
 
     @Nullable
     @Override
-    public IBinder onBind(Intent intent) { return null; }
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 }
