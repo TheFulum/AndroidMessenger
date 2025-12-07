@@ -59,7 +59,6 @@ public class NewChatFragment extends Fragment {
     private void setupSearch() {
         updateClearIcon(false);
 
-        // КРИТИЧНО: TextWatcher срабатывает при КАЖДОМ изменении текста!
         binding.searchEt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -69,7 +68,7 @@ public class NewChatFragment extends Fragment {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 updateClearIcon(s.length() > 0);
-                // МГНОВЕННО фильтруем при КАЖДОМ символе!
+                // Фильтруем при КАЖДОМ символе!
                 filterUsers(s.toString());
             }
 
@@ -121,11 +120,10 @@ public class NewChatFragment extends Fragment {
     }
 
     /**
-     * КРИТИЧНО: Фильтрует и СРАЗУ обновляет список
+     * Фильтрует и СРАЗУ обновляет список
      * Регистронезависимый поиск
      */
     private void filterUsers(String query) {
-        // Регистронезависимый поиск
         String searchQuery = query.toLowerCase(Locale.ROOT).trim();
 
         filteredUsers.clear();
@@ -134,14 +132,13 @@ public class NewChatFragment extends Fragment {
             filteredUsers.addAll(allUsers);
         } else {
             for (User user : allUsers) {
-                // Приводим username к нижнему регистру для сравнения
                 if (user.username.toLowerCase(Locale.ROOT).contains(searchQuery)) {
                     filteredUsers.add(user);
                 }
             }
         }
 
-        // МГНОВЕННОЕ обновление UI!
+        // Обновление UI!
         adapter.notifyDataSetChanged();
     }
 
@@ -176,7 +173,10 @@ public class NewChatFragment extends Fragment {
                             String username = snap.child("username").getValue(String.class);
                             if (username == null) continue;
 
-                            allUsers.add(new User(uid, username));
+                            // ← ДОБАВЛЕНО: загружаем profileImageUrl
+                            String profileImageUrl = snap.child("profileImageUrl").getValue(String.class);
+
+                            allUsers.add(new User(uid, username, profileImageUrl));
                         }
 
                         filterExistingChats(myUid);

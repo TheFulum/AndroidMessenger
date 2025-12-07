@@ -188,14 +188,20 @@ public class ChatsFragment extends Fragment {
         for (Map<String, Object> chatData : chats) {
             String otherUid = (String) chatData.get("otherUid");
 
+            // Используем addValueEventListener для real-time обновлений
             db.getReference("Users").child(otherUid)
-                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                    .addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snap) {
                             String username = snap.child("username").getValue(String.class);
-                            chatData.put("username", username != null ? username : "Unknown");
+                            Boolean isOnline = snap.child("online").getValue(Boolean.class);
+                            Long lastSeen = snap.child("lastSeen").getValue(Long.class);
 
-                            // МГНОВЕННО обновляем после КАЖДОЙ загрузки!
+                            chatData.put("username", username != null ? username : "Unknown");
+                            chatData.put("isOnline", isOnline != null ? isOnline : false);
+                            chatData.put("lastSeen", lastSeen != null ? lastSeen : 0L);
+
+                            // Обновляем после КАЖДОЙ загрузки
                             sortChats();
                             applyFilter(searchEt.getText().toString());
                         }
@@ -203,6 +209,8 @@ public class ChatsFragment extends Fragment {
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
                             chatData.put("username", "Unknown");
+                            chatData.put("isOnline", false);
+                            chatData.put("lastSeen", 0L);
                             sortChats();
                             applyFilter(searchEt.getText().toString());
                         }

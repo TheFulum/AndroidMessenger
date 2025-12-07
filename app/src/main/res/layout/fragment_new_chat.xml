@@ -9,12 +9,11 @@
     android:fitsSystemWindows="true"
     tools:context=".bottomnav.new_chat.NewChatFragment">
 
-    <!-- Поле поиска -->
     <EditText
         android:id="@+id/search_et"
         android:layout_width="0dp"
         android:layout_height="50dp"
-        android:hint="Search users..."
+        android:hint="@string/search_users"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingTop="8dp"
@@ -22,9 +21,7 @@
         android:textSize="16sp"
         android:textColor="?android:textColorPrimary"
         android:textColorHint="?android:textColorHint"
-        android:background="@android:color/transparent"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_edit_text_background"
         android:layout_marginTop="20dp"
         android:drawableStart="@drawable/ic_search"
         android:drawablePadding="10dp"
@@ -35,7 +32,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Список пользователей -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/users_rv"
         android:layout_width="match_parent"

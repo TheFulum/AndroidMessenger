@@ -33,69 +33,87 @@
 
     <LinearLayout
         android:id="@+id/email_lin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="360dp"
+        android:layout_height="56dp"
         android:layout_marginTop="25dp"
         android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:gravity="center_vertical"
+        android:background="@drawable/rounded_edit_text_background"
+        android:paddingHorizontal="12dp"
+        app:layout_constraintTop_toBottomOf="@+id/login_title"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/login_title">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
             android:id="@+id/email_icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             app:srcCompat="@drawable/email_icon"
             app:tint="?android:textColorSecondary" />
 
         <EditText
             android:id="@+id/email_et"
-            android:layout_width="300dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="9dp"
-            android:fontFamily="@font/ubuntu_light"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
             android:hint="@string/email"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:fontFamily="@font/ubuntu_light"
             android:textColor="?android:textColorPrimary"
-            android:textColorHint="?android:textColorHint"
-            android:textSize="16sp" />
-
+            android:textColorHint="?android:textColorSecondary"
+            android:background="@android:color/transparent"
+            android:padding="0dp"
+            android:textSize="16sp"
+            android:inputType="textEmailAddress"/>
     </LinearLayout>
+
 
     <LinearLayout
         android:id="@+id/password_lin"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_width="360dp"
+        android:layout_height="56dp"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:gravity="center_vertical"
+        android:background="@drawable/rounded_edit_text_background"
+        android:paddingHorizontal="12dp"
+        app:layout_constraintTop_toBottomOf="@+id/email_lin"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/email_lin">
+        app:layout_constraintEnd_toEndOf="parent">
 
+        <!-- Иконка слева -->
         <ImageView
             android:id="@+id/password_icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             app:srcCompat="@drawable/password_icon"
             app:tint="?android:textColorSecondary" />
 
+        <!-- Поле ввода -->
         <EditText
             android:id="@+id/password_et"
-            android:layout_width="300dp"
-            android:layout_height="50dp"
-            android:layout_marginStart="9dp"
-            android:fontFamily="@font/ubuntu_light"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
             android:hint="@string/password"
-            android:inputType="textPassword"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:fontFamily="@font/ubuntu_light"
             android:textColor="?android:textColorPrimary"
-            android:textColorHint="?android:textColorHint"
-            android:textSize="16sp" />
+            android:textColorHint="?android:textColorSecondary"
+            android:background="@android:color/transparent"
+            android:padding="0dp"
+            android:textSize="16sp"
+            android:inputType="textPassword"/>
 
+        <!-- Кнопка "показать/скрыть" -->
+        <ImageButton
+            android:id="@+id/show_pass_btn"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/baseline_visibility_off_24"
+            app:tint="?android:textColorSecondary"
+            android:contentDescription="@string/show_password"/>
     </LinearLayout>
 
     <Button
@@ -103,7 +121,7 @@
         android:layout_width="268dp"
         android:layout_height="wrap_content"
         android:backgroundTint="@color/blue"
-        android:layout_marginTop="50dp"
+        android:layout_marginTop="30dp"
         android:fontFamily="@font/ubuntu_light"
         android:text="@string/login"
         app:layout_constraintEnd_toEndOf="parent"

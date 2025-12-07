@@ -3,7 +3,18 @@ package com.example.messenger.message;
 public class Message {
 
     private String id, ownerId, text, date;
-    private long timestamp;  // ← Добавь это (long для millis)
+    private long timestamp;
+
+    // Новые поля для файлов
+    private String fileUrl;        // URL файла в Cloudinary
+    private String fileType;       // "image", "document", "video", "audio", "voice"
+    private String fileName;       // Имя файла
+    private long fileSize;         // Размер в байтах
+    private long voiceDuration;    // Длительность голосового в миллисекундах
+
+    // Пересылка
+    private boolean isForwarded;
+    private String forwardedFrom;
 
     public Message() {} // обязательно для Firebase
 
@@ -15,6 +26,22 @@ public class Message {
         this.timestamp = timestamp;
     }
 
+    // Конструктор для сообщений с файлами
+    public Message(String id, String ownerId, String text, String date, long timestamp,
+                   String fileUrl, String fileType, String fileName, long fileSize, long voiceDuration) {
+        this.id = id;
+        this.ownerId = ownerId;
+        this.text = text;
+        this.date = date;
+        this.timestamp = timestamp;
+        this.fileUrl = fileUrl;
+        this.fileType = fileType;
+        this.fileName = fileName;
+        this.fileSize = fileSize;
+        this.voiceDuration = voiceDuration;
+    }
+
+    // Getters и Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -27,6 +54,48 @@ public class Message {
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }
 
-    public long getTimestamp() { return timestamp; }  // ← Getter
-    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }  // ← Setter
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+
+    public String getFileType() { return fileType; }
+    public void setFileType(String fileType) { this.fileType = fileType; }
+
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+
+    public long getFileSize() { return fileSize; }
+    public void setFileSize(long fileSize) { this.fileSize = fileSize; }
+
+    public long getVoiceDuration() { return voiceDuration; }
+    public void setVoiceDuration(long voiceDuration) { this.voiceDuration = voiceDuration; }
+
+    public boolean isForwarded() { return isForwarded; }
+    public void setForwarded(boolean forwarded) { isForwarded = forwarded; }
+
+    public String getForwardedFrom() { return forwardedFrom; }
+    public void setForwardedFrom(String forwardedFrom) { this.forwardedFrom = forwardedFrom; }
+
+    // Вспомогательные методы
+    public boolean hasFile() {
+        return fileUrl != null && !fileUrl.isEmpty();
+    }
+
+    public boolean isImage() {
+        return "image".equals(fileType);
+    }
+
+    public boolean isVoice() {
+        return "voice".equals(fileType);
+    }
+
+    public String getFormattedDuration() {
+        if (voiceDuration <= 0) return "0:00";
+        int seconds = (int) (voiceDuration / 1000);
+        int minutes = seconds / 60;
+        seconds = seconds % 60;
+        return String.format("%d:%02d", minutes, seconds);
+    }
 }

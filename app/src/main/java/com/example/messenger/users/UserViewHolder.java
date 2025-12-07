@@ -8,14 +8,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.messenger.R;
 
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class UserViewHolder extends RecyclerView.ViewHolder {
 
-    TextView username_tv;
+    public TextView username_tv;
+    public CircleImageView profileImage;
 
     public UserViewHolder(@NonNull View itemView) {
         super(itemView);
 
         username_tv = itemView.findViewById(R.id.username_tv);
+        profileImage = itemView.findViewById(R.id.profile_iv);
     }
 }

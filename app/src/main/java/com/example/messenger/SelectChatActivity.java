@@ -33,8 +33,17 @@ public class SelectChatActivity extends AppCompatActivity {
     private ActivitySelectChatBinding binding;
     private String messageText;
     private String currentUserId;
-    private String currentUsername;  // ← Добавлено для "от кого"
+    private String currentUsername;
     private String sourceChatId;
+
+    // Данные о файле
+    private String fileUrl;
+    private String fileType;
+    private String fileName;
+    private long fileSize;
+    private long voiceDuration;
+    private boolean hasFile = false;
+
     private List<Map<String, Object>> allChats = new ArrayList<>();
     private List<Map<String, Object>> filteredChats = new ArrayList<>();
     private SelectChatAdapter adapter;
@@ -54,7 +63,15 @@ public class SelectChatActivity extends AppCompatActivity {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
 
-        if (messageText == null || currentUserId == null) {
+        // Получаем данные о файле
+        fileUrl = getIntent().getStringExtra("fileUrl");
+        fileType = getIntent().getStringExtra("fileType");
+        fileName = getIntent().getStringExtra("fileName");
+        fileSize = getIntent().getLongExtra("fileSize", 0);
+        voiceDuration = getIntent().getLongExtra("voiceDuration", 0);
+        hasFile = fileUrl != null && !fileUrl.isEmpty();
+
+        if (currentUserId == null) {
             Toast.makeText(this, "Forwarding error", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -63,7 +80,7 @@ public class SelectChatActivity extends AppCompatActivity {
         setupToolbar();
         setupSearch();
         setupRecyclerView();
-        loadCurrentUsername();  // ← Загружаем свой username
+        loadCurrentUsername();
         loadChats();
     }
 
@@ -71,12 +88,23 @@ public class SelectChatActivity extends AppCompatActivity {
         binding.backBtn.setOnClickListener(v -> {
             if (!isForwarding) finish();
         });
-        binding.titleTv.setText("Forwarding a message");
+
+        // Меняем заголовок
+        String title = "Forwarding ";
+        if (hasFile) {
+            if ("image".equals(fileType)) {
+                title += "📷 photo";
+            } else if ("voice".equals(fileType)) {
+                title += "🎤 voice message";
+            } else {
+                title += "📄 document";
+            }
+        } else {
+            title += "message";
+        }
+        binding.titleTv.setText(title);
     }
 
-    /**
-     * Загружает username текущего пользователя для "от кого переслано"
-     */
     private void loadCurrentUsername() {
         FirebaseDatabase.getInstance()
                 .getReference("Users")
@@ -109,7 +137,7 @@ public class SelectChatActivity extends AppCompatActivity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 updateClearIcon(s.length() > 0);
-                filterChats(s.toString());  // ← Мгновенный поиск при каждом изменении
+                filterChats(s.toString());
             }
 
             @Override
@@ -152,10 +180,6 @@ public class SelectChatActivity extends AppCompatActivity {
         return touchX >= clearIconStart;
     }
 
-    /**
-     * Фильтрует список чатов по поисковому запросу
-     * Обновляется мгновенно при каждом вызове
-     */
     private void filterChats(String query) {
         String searchQuery = query.toLowerCase(Locale.ROOT).trim();
         filteredChats.clear();
@@ -171,7 +195,7 @@ public class SelectChatActivity extends AppCompatActivity {
             }
         }
 
-        adapter.notifyDataSetChanged();  // ← Мгновенное обновление!
+        adapter.notifyDataSetChanged();
     }
 
     private void hideKeyboard() {
@@ -218,7 +242,7 @@ public class SelectChatActivity extends AppCompatActivity {
                     Map<String, Object> chatData = new HashMap<>();
                     chatData.put("chatId", chatId);
                     chatData.put("otherUid", otherUid);
-                    chatData.put("username", "Loading...");  // ← Временное значение
+                    chatData.put("username", "Loading...");
 
                     allChats.add(chatData);
                 }
@@ -227,7 +251,6 @@ public class SelectChatActivity extends AppCompatActivity {
                     Toast.makeText(SelectChatActivity.this, "No available chats", Toast.LENGTH_SHORT).show();
                 }
 
-                // ← Обновляем сразу с "Loading..."
                 filterChats(binding.searchEt.getText().toString());
                 loadUsernames();
             }
@@ -257,8 +280,6 @@ public class SelectChatActivity extends AppCompatActivity {
                         public void onDataChange(@NonNull DataSnapshot snap) {
                             String username = snap.getValue(String.class);
                             chatData.put("username", username != null ? username : "Unknown");
-
-                            // ← Обновляем сразу после каждой загрузки
                             filterChats(binding.searchEt.getText().toString());
                         }
 
@@ -282,13 +303,40 @@ public class SelectChatActivity extends AppCompatActivity {
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
         HashMap<String, Object> msg = new HashMap<>();
-        // ← ИСПРАВЛЕНО: добавили "от кого"
-        msg.put("text", "📩 Forwarded from " + currentUsername + ":\n" + messageText);
+
+        // Формируем текст
+        String forwardedText;
+        if (hasFile) {
+            // Для файлов
+            if (messageText != null && !messageText.isEmpty()) {
+                forwardedText = messageText;
+            } else {
+                forwardedText = "";
+            }
+        } else {
+            // Для текстовых
+            forwardedText = "📩 Forwarded from " + currentUsername + ":\n" +
+                    (messageText != null ? messageText : "");
+        }
+
+        msg.put("text", forwardedText);
         msg.put("ownerId", currentUserId);
         msg.put("date", dateFormat.format(new Date()));
         msg.put("timestamp", now);
         msg.put("isForwarded", true);
-        msg.put("forwardedFrom", currentUsername);  // ← Сохраняем для истории
+        msg.put("forwardedFrom", currentUsername);
+
+        // Если есть файл
+        if (hasFile) {
+            msg.put("fileUrl", fileUrl);
+            msg.put("fileType", fileType);
+            msg.put("fileName", fileName);
+            msg.put("fileSize", fileSize);
+
+            if ("voice".equals(fileType)) {
+                msg.put("voiceDuration", voiceDuration);
+            }
+        }
 
         DatabaseReference messageRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
@@ -308,8 +356,22 @@ public class SelectChatActivity extends AppCompatActivity {
     private void updateLastMessage(String targetChatId, long timestamp) {
         HashMap<String, Object> update = new HashMap<>();
         update.put("lastMessageTime", timestamp);
-        // ← ИСПРАВЛЕНО: добавили "от кого" в превью
-        update.put("lastMessagePreview", "📩 Forwarded from " + currentUsername);
+
+        // Формируем превью
+        String preview;
+        if (hasFile) {
+            if ("image".equals(fileType)) {
+                preview = "📩 Forwarded: 📷 Photo";
+            } else if ("voice".equals(fileType)) {
+                preview = "📩 Forwarded: 🎤 Voice message";
+            } else {
+                preview = "📩 Forwarded: 📄 " + fileName;
+            }
+        } else {
+            preview = "📩 Forwarded from " + currentUsername;
+        }
+
+        update.put("lastMessagePreview", preview);
 
         FirebaseDatabase.getInstance()
                 .getReference("Chats")

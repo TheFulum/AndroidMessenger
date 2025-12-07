@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Стиль для круглой картинки -->
     <style name="CircleImageView">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>
     </style>
+
+    <style name="InputField">
+        <item name="android:background">@drawable/rounded_edit_text_background</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:textColor">?android:textColorPrimary</item>
+        <item name="android:textColorHint">?android:textColorSecondary</item>
+        <item name="android:fontFamily">@font/ubuntu_light</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+
 </resources>

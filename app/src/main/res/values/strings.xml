@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Poligram</string>
+
+    <!-- Login strings -->
     <string name="login_title">Login</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -9,6 +11,35 @@
     <string name="sign_up">Sign Up</string>
     <string name="username">Username</string>
     <string name="profile">Profile</string>
+
+    <!-- Chats strings -->
     <string name="users">Users</string>
     <string name="chats">Chats</string>
+
+    <!-- Profile strings -->
+    <string name="logout">Logout</string>
+    <string name="change_photo">Change photo</string>
+    <string name="profile_picture">Profile image</string>
+    <string name="tap_to_change_photo">Tap to change photo</string>
+
+    <!-- Chat strings -->
+    <string name="back">Back</string>
+    <string name="send">Send</string>
+    <string name="type_message">Enter message</string>
+    <string name="attach_file">Attach file</string>
+    <string name="download">Download</string>
+    <string name="image_message">Picture message</string>
+    <string name="document">Document</string>
+    <string name="scroll_to_bottom">Scroll to bottom</string>
+    <string name="record_voice">Record voice message</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="cancel">Cancel</string>
+    <string name="image">Image</string>
+    <string name="date_of_birthday">Date of birthday</string>
+    <string name="change">Change</string>
+    <string name="phone_number">Phone number</string>
+    <string name="show_password">Show password</string>
+    <string name="search_chats">Search chats...</string>
+    <string name="search_users">Search users...</string>
 </resources>

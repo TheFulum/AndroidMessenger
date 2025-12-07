@@ -1,16 +1,27 @@
 package com.example.messenger.message;
 
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
+import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.messenger.R;
 import com.example.messenger.SelectChatActivity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -18,13 +29,24 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.List;
-import java.util.Objects;
 
-public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.MessageViewHolder> {
+public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    private static final int TYPE_TEXT_MY = 0;
+    private static final int TYPE_TEXT_OTHER = 1;
+    private static final int TYPE_IMAGE_MY = 2;
+    private static final int TYPE_IMAGE_OTHER = 3;
+    private static final int TYPE_DOCUMENT_MY = 4;
+    private static final int TYPE_DOCUMENT_OTHER = 5;
+    private static final int TYPE_VOICE_MY = 6;
+    private static final int TYPE_VOICE_OTHER = 7;
 
     private List<Message> messages;
     private String chatId;
     private String currentUserId;
+
+    private MediaPlayer currentPlayer;
+    private VoiceMessageViewHolder currentPlayingHolder;
 
     public MessagesAdapter(List<Message> messages, String chatId) {
         this.messages = messages;
@@ -32,28 +54,326 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
         this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
-    @NonNull
-    @Override
-    public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(viewType, parent, false);
-        return new MessageViewHolder(view);
+    public void updateMessages(List<Message> newMessages) {
+        this.messages = newMessages;
+        notifyDataSetChanged();
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
+    public int getItemViewType(int position) {
         Message message = messages.get(position);
+        boolean isMy = message.getOwnerId().equals(currentUserId);
 
-        holder.messageTv.setText(message.getText());
-        holder.dateTv.setText(message.getDate());
+        if (message.hasFile()) {
+            if (message.isImage()) {
+                return isMy ? TYPE_IMAGE_MY : TYPE_IMAGE_OTHER;
+            } else if (message.isVoice()) {
+                return isMy ? TYPE_VOICE_MY : TYPE_VOICE_OTHER;
+            } else {
+                return isMy ? TYPE_DOCUMENT_MY : TYPE_DOCUMENT_OTHER;
+            }
+        } else {
+            return isMy ? TYPE_TEXT_MY : TYPE_TEXT_OTHER;
+        }
+    }
 
-        // Определяем, свое ли сообщение
+    @NonNull
+    @Override
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+
+        switch (viewType) {
+            case TYPE_TEXT_MY:
+                return new TextMessageViewHolder(
+                        inflater.inflate(R.layout.message_from_curr_user_rv_item, parent, false));
+            case TYPE_TEXT_OTHER:
+                return new TextMessageViewHolder(
+                        inflater.inflate(R.layout.message_rv_item, parent, false));
+            case TYPE_IMAGE_MY:
+                return new ImageMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_image_my, parent, false));
+            case TYPE_IMAGE_OTHER:
+                return new ImageMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_image, parent, false));
+            case TYPE_DOCUMENT_MY:
+                return new DocumentMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_document_my, parent, false));
+            case TYPE_DOCUMENT_OTHER:
+                return new DocumentMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_document, parent, false));
+            case TYPE_VOICE_MY:
+                return new VoiceMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_voice, parent, false));
+            case TYPE_VOICE_OTHER:
+                return new VoiceMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_voice_other, parent, false));
+            default:
+                return new TextMessageViewHolder(
+                        inflater.inflate(R.layout.message_rv_item, parent, false));
+        }
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        Message message = messages.get(position);
         boolean isMyMessage = message.getOwnerId().equals(currentUserId);
 
-        // Долгое нажатие для показа меню
+        if (holder instanceof TextMessageViewHolder) {
+            bindTextMessage((TextMessageViewHolder) holder, message, isMyMessage);
+        } else if (holder instanceof ImageMessageViewHolder) {
+            bindImageMessage((ImageMessageViewHolder) holder, message, isMyMessage);
+        } else if (holder instanceof DocumentMessageViewHolder) {
+            bindDocumentMessage((DocumentMessageViewHolder) holder, message, isMyMessage);
+        } else if (holder instanceof VoiceMessageViewHolder) {
+            bindVoiceMessage((VoiceMessageViewHolder) holder, message, isMyMessage);
+        }
+    }
+
+    private void bindTextMessage(TextMessageViewHolder holder, Message message, boolean isMyMessage) {
+        // Показываем индикатор пересылки
+        if (message.isForwarded() && message.getForwardedFrom() != null) {
+            holder.forwardedTv.setVisibility(View.VISIBLE);
+            holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
+        } else {
+            holder.forwardedTv.setVisibility(View.GONE);
+        }
+
+        holder.messageTv.setText(cleanForwardedText(message.getText()));
+        holder.dateTv.setText(message.getDate());
+
         holder.itemView.setOnLongClickListener(v -> {
             showMessageActionsSheet(v, message, isMyMessage);
             return true;
         });
+    }
+
+    private void bindImageMessage(ImageMessageViewHolder holder, Message message, boolean isMyMessage) {
+        // Показываем индикатор пересылки
+        if (message.isForwarded() && message.getForwardedFrom() != null) {
+            holder.forwardedTv.setVisibility(View.VISIBLE);
+            holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
+        } else {
+            holder.forwardedTv.setVisibility(View.GONE);
+        }
+
+        Glide.with(holder.itemView.getContext())
+                .load(message.getFileUrl())
+                .placeholder(R.drawable.ic_image_placeholder)
+                .error(R.drawable.ic_image_placeholder)
+                .into(holder.imageView);
+
+        String displayText = cleanForwardedText(message.getText());
+        if (displayText != null && !displayText.isEmpty()) {
+            holder.messageTv.setVisibility(View.VISIBLE);
+            holder.messageTv.setText(displayText);
+        } else {
+            holder.messageTv.setVisibility(View.GONE);
+        }
+
+        holder.dateTv.setText(message.getDate());
+
+        holder.imageView.setOnClickListener(v -> {
+            openImageFullscreen(v.getContext(), message.getFileUrl());
+        });
+
+        holder.downloadBtn.setOnClickListener(v -> {
+            downloadFile(v.getContext(), message.getFileUrl(), message.getFileName());
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            showMessageActionsSheet(v, message, isMyMessage);
+            return true;
+        });
+    }
+
+    private void bindDocumentMessage(DocumentMessageViewHolder holder, Message message, boolean isMyMessage) {
+        // Показываем индикатор пересылки
+        if (message.isForwarded() && message.getForwardedFrom() != null) {
+            holder.forwardedTv.setVisibility(View.VISIBLE);
+            holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
+        } else {
+            holder.forwardedTv.setVisibility(View.GONE);
+        }
+
+        holder.fileNameTv.setText(message.getFileName());
+        holder.fileSizeTv.setText(formatFileSize(message.getFileSize()));
+
+        String displayText = cleanForwardedText(message.getText());
+        if (displayText != null && !displayText.isEmpty()) {
+            holder.messageTv.setVisibility(View.VISIBLE);
+            holder.messageTv.setText(displayText);
+        } else {
+            holder.messageTv.setVisibility(View.GONE);
+        }
+
+        holder.dateTv.setText(message.getDate());
+
+        holder.downloadBtn.setOnClickListener(v -> {
+            downloadFile(v.getContext(), message.getFileUrl(), message.getFileName());
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            showMessageActionsSheet(v, message, isMyMessage);
+            return true;
+        });
+    }
+
+    private void bindVoiceMessage(VoiceMessageViewHolder holder, Message message, boolean isMyMessage) {
+        // Показываем индикатор пересылки
+        if (message.isForwarded() && message.getForwardedFrom() != null) {
+            holder.forwardedTv.setVisibility(View.VISIBLE);
+            holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
+        } else {
+            holder.forwardedTv.setVisibility(View.GONE);
+        }
+
+        holder.voiceDurationTv.setText(message.getFormattedDuration());
+        holder.dateTv.setText(message.getDate());
+        holder.seekBar.setProgress(0);
+        holder.playPauseBtn.setImageResource(R.drawable.ic_play);
+
+        holder.playPauseBtn.setOnClickListener(v -> {
+            toggleVoicePlayback(holder, message);
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            showMessageActionsSheet(v, message, isMyMessage);
+            return true;
+        });
+    }
+
+    private void toggleVoicePlayback(VoiceMessageViewHolder holder, Message message) {
+        if (currentPlayer != null && currentPlayingHolder != holder) {
+            stopCurrentPlayback();
+        }
+
+        if (currentPlayer != null && currentPlayingHolder == holder) {
+            if (currentPlayer.isPlaying()) {
+                currentPlayer.pause();
+                holder.playPauseBtn.setImageResource(R.drawable.ic_play);
+            } else {
+                currentPlayer.start();
+                holder.playPauseBtn.setImageResource(R.drawable.ic_pause);
+                updateSeekBar(holder, message);
+            }
+        } else {
+            playVoiceMessage(holder, message);
+        }
+    }
+
+    private void playVoiceMessage(VoiceMessageViewHolder holder, Message message) {
+        try {
+            currentPlayer = new MediaPlayer();
+            currentPlayer.setDataSource(message.getFileUrl());
+            currentPlayer.prepareAsync();
+
+            currentPlayer.setOnPreparedListener(mp -> {
+                mp.start();
+                currentPlayingHolder = holder;
+                holder.playPauseBtn.setImageResource(R.drawable.ic_pause);
+                updateSeekBar(holder, message);
+            });
+
+            currentPlayer.setOnCompletionListener(mp -> {
+                holder.playPauseBtn.setImageResource(R.drawable.ic_play);
+                holder.seekBar.setProgress(0);
+                holder.voiceDurationTv.setText(message.getFormattedDuration());
+                releasePlayer();
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(holder.itemView.getContext(),
+                    "Ошибка воспроизведения", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updateSeekBar(VoiceMessageViewHolder holder, Message message) {
+        if (currentPlayer == null || !currentPlayer.isPlaying()) return;
+
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (currentPlayer != null && currentPlayer.isPlaying()) {
+                    int currentPos = currentPlayer.getCurrentPosition();
+                    int duration = currentPlayer.getDuration();
+
+                    int progress = (int) ((currentPos * 100.0) / duration);
+                    holder.seekBar.setProgress(progress);
+
+                    int remainingSeconds = (duration - currentPos) / 1000;
+                    int minutes = remainingSeconds / 60;
+                    int seconds = remainingSeconds % 60;
+                    holder.voiceDurationTv.setText(String.format("%d:%02d", minutes, seconds));
+
+                    handler.postDelayed(this, 100);
+                }
+            }
+        };
+        handler.post(runnable);
+    }
+
+    private void stopCurrentPlayback() {
+        if (currentPlayer != null) {
+            if (currentPlayer.isPlaying()) {
+                currentPlayer.stop();
+            }
+            if (currentPlayingHolder != null) {
+                currentPlayingHolder.playPauseBtn.setImageResource(R.drawable.ic_play);
+                currentPlayingHolder.seekBar.setProgress(0);
+            }
+            releasePlayer();
+        }
+    }
+
+    private void releasePlayer() {
+        if (currentPlayer != null) {
+            currentPlayer.release();
+            currentPlayer = null;
+        }
+        currentPlayingHolder = null;
+    }
+
+    private String cleanForwardedText(String text) {
+        if (text == null) return null;
+        if (text.startsWith("📩 Forwarded from")) {
+            int colonIndex = text.indexOf(":\n");
+            if (colonIndex != -1 && colonIndex + 2 < text.length()) {
+                return text.substring(colonIndex + 2);
+            }
+        }
+        return text;
+    }
+
+    private void openImageFullscreen(Context context, String imageUrl) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(imageUrl));
+        context.startActivity(intent);
+    }
+
+    private void downloadFile(Context context, String fileUrl, String fileName) {
+        try {
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(fileUrl));
+            request.setTitle(fileName);
+            request.setDescription("Downloading file...");
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+
+            DownloadManager manager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            manager.enqueue(request);
+
+            Toast.makeText(context, "Скачивание начато", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(context, "Ошибка скачивания", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String formatFileSize(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "";
+        return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
     }
 
     private void showMessageActionsSheet(View view, Message message, boolean isMyMessage) {
@@ -64,13 +384,11 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
         LinearLayout actionForward = sheetView.findViewById(R.id.action_forward);
         LinearLayout actionDelete = sheetView.findViewById(R.id.action_delete);
 
-        // Кнопка "Переслать" - доступна всегда
         actionForward.setOnClickListener(v -> {
             bottomSheet.dismiss();
             forwardMessage(view, message);
         });
 
-        // Кнопка "Удалить" - только для своих сообщений
         if (isMyMessage) {
             actionDelete.setVisibility(View.VISIBLE);
             actionDelete.setOnClickListener(v -> {
@@ -87,8 +405,21 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
 
     private void forwardMessage(View view, Message message) {
         Intent intent = new Intent(view.getContext(), SelectChatActivity.class);
+
         intent.putExtra("messageText", message.getText());
         intent.putExtra("sourceChatId", chatId);
+
+        if (message.hasFile()) {
+            intent.putExtra("fileUrl", message.getFileUrl());
+            intent.putExtra("fileType", message.getFileType());
+            intent.putExtra("fileName", message.getFileName());
+            intent.putExtra("fileSize", message.getFileSize());
+
+            if (message.isVoice()) {
+                intent.putExtra("voiceDuration", message.getVoiceDuration());
+            }
+        }
+
         view.getContext().startActivity(intent);
     }
 
@@ -122,22 +453,67 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
     }
 
     @Override
-    public int getItemViewType(int position) {
-        if (messages.get(position).getOwnerId().equals(Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid()))
-            return R.layout.message_from_curr_user_rv_item;
-        else
-            return R.layout.message_rv_item;
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
+        super.onViewRecycled(holder);
+        if (holder == currentPlayingHolder) {
+            stopCurrentPlayback();
+        }
     }
 
-    static class MessageViewHolder extends RecyclerView.ViewHolder {
+    // ViewHolders
+    static class TextMessageViewHolder extends RecyclerView.ViewHolder {
+        TextView messageTv, dateTv, forwardedTv;
 
-        TextView messageTv, dateTv;
-
-        public MessageViewHolder(@NonNull View itemView) {
+        TextMessageViewHolder(@NonNull View itemView) {
             super(itemView);
-
             messageTv = itemView.findViewById(R.id.message_tv);
             dateTv = itemView.findViewById(R.id.message_date_tv);
+            forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+        }
+    }
+
+    static class ImageMessageViewHolder extends RecyclerView.ViewHolder {
+        ImageView imageView;
+        TextView messageTv, dateTv, forwardedTv;
+        Button downloadBtn;
+
+        ImageMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            imageView = itemView.findViewById(R.id.message_image);
+            messageTv = itemView.findViewById(R.id.message_tv);
+            dateTv = itemView.findViewById(R.id.message_date_tv);
+            downloadBtn = itemView.findViewById(R.id.download_btn);
+            forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+        }
+    }
+
+    static class DocumentMessageViewHolder extends RecyclerView.ViewHolder {
+        TextView fileNameTv, fileSizeTv, messageTv, dateTv, forwardedTv;
+        Button downloadBtn;
+
+        DocumentMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            fileNameTv = itemView.findViewById(R.id.file_name_tv);
+            fileSizeTv = itemView.findViewById(R.id.file_size_tv);
+            messageTv = itemView.findViewById(R.id.message_tv);
+            dateTv = itemView.findViewById(R.id.message_date_tv);
+            downloadBtn = itemView.findViewById(R.id.download_btn);
+            forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+        }
+    }
+
+    static class VoiceMessageViewHolder extends RecyclerView.ViewHolder {
+        ImageButton playPauseBtn;
+        SeekBar seekBar;
+        TextView voiceDurationTv, dateTv, forwardedTv;
+
+        VoiceMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            playPauseBtn = itemView.findViewById(R.id.play_pause_btn);
+            seekBar = itemView.findViewById(R.id.voice_seekbar);
+            voiceDurationTv = itemView.findViewById(R.id.voice_duration_tv);
+            dateTv = itemView.findViewById(R.id.message_date_tv);
+            forwardedTv = itemView.findViewById(R.id.forwarded_tv);
         }
     }
 }

@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.messenger.ChatActivity;
 import com.example.messenger.R;
 import com.example.messenger.chats.Chat;
@@ -38,6 +39,17 @@ public class UsersAdapter extends RecyclerView.Adapter<UserViewHolder> {
 
         holder.username_tv.setText(user.username);
 
+        // Загружаем фото профиля
+        if (user.profileImageUrl != null && !user.profileImageUrl.isEmpty()) {
+            Glide.with(holder.itemView.getContext())
+                    .load(user.profileImageUrl)
+                    .placeholder(R.drawable.baseline_person_24)
+                    .error(R.drawable.baseline_person_24)
+                    .into(holder.profileImage);
+        } else {
+            holder.profileImage.setImageResource(R.drawable.baseline_person_24);
+        }
+
         holder.itemView.setOnClickListener(v -> {
             createOrOpenChat(user, holder);
         });
@@ -47,7 +59,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UserViewHolder> {
     public int getItemCount() {
         return users.size();
     }
-
 
     private void createOrOpenChat(User otherUser, UserViewHolder holder) {
         String myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();

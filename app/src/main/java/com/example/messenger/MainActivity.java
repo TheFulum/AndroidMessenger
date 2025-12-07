@@ -20,6 +20,11 @@ import com.example.messenger.databinding.ActivityMainBinding;
 import com.example.messenger.notifications.MessageListenerService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private FirebaseAuth.AuthStateListener authStateListener;
+    private String currentUserId;
 
     private Fragment chatsFragment;
     private Fragment newChatFragment;
@@ -44,6 +50,16 @@ public class MainActivity extends AppCompatActivity {
         // Проверяем auth сразу
         if (!checkAuthentication()) {
             return;
+        }
+
+        // Получаем ID пользователя
+        currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+
+        // Устанавливаем статус "В сети"
+        if (currentUserId != null) {
+            setUserOnline();
         }
 
         // Инициализируем фрагменты
@@ -179,6 +195,38 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Устанавливает статус пользователя "В сети"
+     */
+    private void setUserOnline() {
+        if (currentUserId == null) return;
+
+        Map<String, Object> status = new HashMap<>();
+        status.put("online", true);
+        status.put("lastSeen", ServerValue.TIMESTAMP);
+
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(currentUserId)
+                .updateChildren(status);
+    }
+
+    /**
+     * Устанавливает статус пользователя "Не в сети"
+     */
+    private void setUserOffline() {
+        if (currentUserId == null) return;
+
+        Map<String, Object> status = new HashMap<>();
+        status.put("online", false);
+        status.put("lastSeen", ServerValue.TIMESTAMP);
+
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(currentUserId)
+                .updateChildren(status);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
@@ -196,6 +244,21 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         // Дополнительная проверка при возврате в активити
         checkAuthentication();
+
+        // Устанавливаем статус "В сети"
+        if (currentUserId != null) {
+            setUserOnline();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // Устанавливаем статус "Не в сети"
+        if (currentUserId != null) {
+            setUserOffline();
+        }
     }
 
     @Override
@@ -205,6 +268,11 @@ public class MainActivity extends AppCompatActivity {
         // Удаляем auth listener
         if (authStateListener != null) {
             FirebaseAuth.getInstance().removeAuthStateListener(authStateListener);
+        }
+
+        // Устанавливаем статус "Не в сети"
+        if (currentUserId != null) {
+            setUserOffline();
         }
 
         // Очищаем binding

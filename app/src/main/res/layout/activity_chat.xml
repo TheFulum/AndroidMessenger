@@ -1,46 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:colorBackground"
     android:fitsSystemWindows="true">
 
-    <!-- Верхняя панель -->
+    <!-- Заголовок чата -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/top_panel"
-        android:layout_width="0dp"
-        android:layout_height="60dp"
-        android:layout_marginTop="0dp"
-        android:background="?colorSurface"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:id="@+id/chat_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="4dp"
+        android:padding="12dp"
+        android:background="?android:colorBackground"
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
             android:id="@+id/back_btn"
-            android:layout_width="35dp"
-            android:layout_height="35dp"
-            android:src="@drawable/ic_round_arrow_back"
-            android:background="@android:color/transparent"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_back"
             app:tint="?android:textColorPrimary"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="15dp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"/>
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/chat_username_tv"
-            android:layout_width="wrap_content"
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/chat_profile_image"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/baseline_person_24"
+            app:civ_border_width="1dp"
+            app:civ_border_color="?android:textColorSecondary"
+            app:layout_constraintStart_toEndOf="@id/back_btn"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Информация о пользователе -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Loading..."
-            android:textSize="19sp"
-            android:textStyle="bold"
-            android:textColor="?android:textColorPrimary"
-            android:layout_marginTop="19dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/chat_profile_image"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <!-- Имя пользователя -->
+            <TextView
+                android:id="@+id/chat_username_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/ubuntu_light"
+                android:maxLines="1"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="Username" />
+
+            <!-- Статус (В сети / Был в сети) -->
+            <TextView
+                android:id="@+id/chat_status_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/ubuntu_light"
+                android:text="В сети"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="В сети"
+                tools:visibility="visible" />
+
+        </LinearLayout>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Список сообщений -->
@@ -48,55 +86,192 @@
         android:id="@+id/messages_rv"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:paddingBottom="5dp"
         android:clipToPadding="false"
-        app:layout_constraintTop_toBottomOf="@id/top_panel"
-        app:layout_constraintBottom_toTopOf="@id/input_container" />
+        android:overScrollMode="always"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/upload_progress_container"
+        app:layout_constraintTop_toBottomOf="@id/chat_header" />
 
-    <!-- Нижняя панель с полем ввода -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/input_container"
-        android:layout_width="0dp"
+    <!-- Кнопка "Scroll to bottom" -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/scroll_to_bottom_fab"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="?colorSurface"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/scroll_to_bottom"
+        android:src="@drawable/ic_arrow_down"
+        android:visibility="gone"
+        app:backgroundTint="@color/primary"
+        app:tint="@android:color/white"
+        app:fabSize="normal"
+        app:elevation="6dp"
+        app:layout_constraintBottom_toTopOf="@id/upload_progress_container"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible" />
+
+    <!-- Прогресс загрузки файла -->
+    <LinearLayout
+        android:id="@+id/upload_progress_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:background="?android:colorBackground"
+        android:elevation="8dp"
+        app:layout_constraintBottom_toTopOf="@id/message_input_container"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/upload_file_name_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/ubuntu_light"
+            android:textSize="14sp"
+            android:textColor="?android:textColorPrimary"
+            tools:text="image.jpg" />
+
+        <ProgressBar
+            android:id="@+id/upload_progress_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:max="100" />
+
+        <TextView
+            android:id="@+id/upload_progress_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/ubuntu_light"
+            android:textSize="12sp"
+            android:textColor="?android:textColorSecondary"
+            tools:text="Загрузка... 50%" />
+
+    </LinearLayout>
+
+    <!-- Поле ввода сообщения -->
+    <LinearLayout
+        android:id="@+id/message_input_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:colorBackground"
+        android:elevation="4dp"
+        android:orientation="horizontal"
         android:padding="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageButton
+            android:id="@+id/attach_file_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/attach_file"
+            android:src="@drawable/ic_attach"
+            app:tint="?android:textColorSecondary" />
 
         <EditText
             android:id="@+id/message_et"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:hint="Type your message..."
-            android:background="@drawable/message_input_bg"
-            android:padding="14dp"
-            android:textSize="16sp"
-            android:textColor="@color/black"
-            android:textColorHint="?android:textColorHint"
-            android:gravity="top|start"
-            android:inputType="textCapSentences|textMultiLine|textAutoCorrect"
-            android:maxLines="6"
+            android:layout_weight="1"
+            android:background="@drawable/message_input_background"
+            android:fontFamily="@font/ubuntu_light"
+            android:hint="@string/type_message"
+            android:imeOptions="actionSend"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="4"
             android:minHeight="48dp"
-            android:scrollbars="vertical"
-            android:overScrollMode="always"
-            android:imeOptions="actionSend|flagNoExtractUi"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/send_message_btn"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            android:padding="12dp"
+            android:textColor="?android:textColorPrimary"
+            android:textColorHint="?android:textColorSecondary"
+            android:textSize="16sp" />
 
+        <!-- Кнопка микрофона (по умолчанию видима) -->
+        <ImageButton
+            android:id="@+id/voice_record_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/record_voice"
+            android:src="@drawable/ic_mic"
+            app:tint="?android:textColorSecondary" />
+
+        <!-- Кнопка отправки (скрыта, пока нет текста) -->
         <ImageButton
             android:id="@+id/send_message_btn"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/send_icon"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            app:tint="@color/blue"
-            android:scaleType="centerInside"
-            android:contentDescription="Отправить"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:contentDescription="@string/send"
+            android:src="@drawable/ic_send"
+            android:visibility="gone"
+            app:tint="@color/blue" />
+
+    </LinearLayout>
+
+    <!-- Индикатор записи голосового сообщения -->
+    <LinearLayout
+        android:id="@+id/voice_recording_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:colorBackground"
+        android:elevation="8dp"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:visibility="visible">
+
+        <ImageView
+            android:id="@+id/recording_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/ic_mic"
+            app:tint="@color/red" />
+
+        <TextView
+            android:id="@+id/recording_time_tv"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:fontFamily="@font/ubuntu_light"
+            android:text="0:00"
+            android:textColor="?android:textColorPrimary"
+            android:textSize="16sp" />
+
+        <ImageButton
+            android:id="@+id/cancel_recording_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cancel"
+            android:src="@drawable/ic_close"
+            app:tint="?android:textColorSecondary" />
+
+        <ImageButton
+            android:id="@+id/send_voice_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/send"
+            android:src="@drawable/ic_send"
+            app:tint="@color/blue" />
+
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

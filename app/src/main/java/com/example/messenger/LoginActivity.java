@@ -6,8 +6,10 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -25,13 +27,13 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
     private ActivityLoginBinding binding;
+    private boolean isPasswordVisible = false;
     private boolean isLoading = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Если пользователь уже вошёл — сразу в приложение
         if (isUserLoggedIn()) {
             navigateToMain();
             return;
@@ -43,6 +45,7 @@ public class LoginActivity extends AppCompatActivity {
 
         setupWindowInsets();
         setupUI();
+        setupShowPasswordButton();
     }
 
     private boolean isUserLoggedIn() {
@@ -61,28 +64,45 @@ public class LoginActivity extends AppCompatActivity {
     private void setupUI() {
         updateLoginButtonState();
 
-        TextWatcher textWatcher = new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+        TextWatcher tw = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 updateLoginButtonState();
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {}
+            @Override public void afterTextChanged(Editable s) {}
         };
 
-        binding.emailEt.addTextChangedListener(textWatcher);
-        binding.passwordEt.addTextChangedListener(textWatcher);
+        binding.emailEt.addTextChangedListener(tw);
+        binding.passwordEt.addTextChangedListener(tw);
 
         binding.loginBtn.setOnClickListener(v -> {
             if (!isLoading) loginUser();
         });
 
         binding.goToRegisterActivityTv.setOnClickListener(v -> {
-            if (!isLoading) startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
+            if (!isLoading)
+                startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
+        });
+    }
+
+    private void setupShowPasswordButton() {
+        ImageButton showPassBtn = binding.showPassBtn;
+
+        showPassBtn.setOnClickListener(v -> {
+            isPasswordVisible = !isPasswordVisible;
+
+            if (isPasswordVisible) {
+                // показать пароль
+                binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                showPassBtn.setImageResource(R.drawable.baseline_visibility_24);
+            } else {
+                // скрыть пароль
+                binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                showPassBtn.setImageResource(R.drawable.baseline_visibility_off_24);
+            }
+
+            // курсор в конец
+            binding.passwordEt.setSelection(binding.passwordEt.getText().length());
         });
     }
 
@@ -90,9 +110,9 @@ public class LoginActivity extends AppCompatActivity {
         String email = binding.emailEt.getText().toString().trim();
         String password = binding.passwordEt.getText().toString().trim();
 
-        boolean isValid = !email.isEmpty() && !password.isEmpty() && password.length() >= 6;
-        binding.loginBtn.setEnabled(isValid && !isLoading);
-        binding.loginBtn.setAlpha(isValid ? 1.0f : 0.5f);
+        boolean ok = !email.isEmpty() && !password.isEmpty() && password.length() >= 6;
+        binding.loginBtn.setEnabled(ok && !isLoading);
+        binding.loginBtn.setAlpha(ok ? 1f : 0.5f);
     }
 
     private void loginUser() {
@@ -120,26 +140,28 @@ public class LoginActivity extends AppCompatActivity {
                         requestNotificationPermissionIfNeeded();
                         navigateToMain();
                     } else {
-                        String errorMessage = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Login failed";
-                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, task.getException().getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_REQUEST_CODE);
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        NOTIFICATION_PERMISSION_REQUEST_CODE
+                );
             }
         }
     }
 
     private void navigateToMain() {
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        Intent i = new Intent(LoginActivity.this, MainActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
         finish();
     }
 
@@ -149,17 +171,13 @@ public class LoginActivity extends AppCompatActivity {
         binding.loaderBg.setVisibility(show ? View.VISIBLE : View.GONE);
         binding.loader.setVisibility(show ? View.VISIBLE : View.GONE);
 
-        binding.loginBtn.setEnabled(!show);
         binding.emailEt.setEnabled(!show);
         binding.passwordEt.setEnabled(!show);
+        binding.showPassBtn.setEnabled(!show);
+        binding.loginBtn.setEnabled(!show);
         binding.goToRegisterActivityTv.setEnabled(!show);
 
         if (!show) updateLoginButtonState();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     @Override

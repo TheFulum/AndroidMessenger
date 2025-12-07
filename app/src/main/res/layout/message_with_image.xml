@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Индикатор пересылки -->
+    <TextView
+        android:id="@+id/forwarded_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="4dp"
+        android:fontFamily="@font/ubuntu_light"
+        android:text="📩 Forwarded from Username"
+        android:textColor="#808080"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:visibility="gone" />
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/message_card"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        app:cardBackgroundColor="@color/message_background"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="2dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <!-- Изображение -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="0dp">
+
+                <ImageView
+                    android:id="@+id/message_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="@string/image_message"
+                    tools:src="@drawable/username_icon" />
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Текст под изображением (если есть) -->
+            <TextView
+                android:id="@+id/message_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="@font/ubuntu_light"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"
+                android:visibility="gone"
+                tools:text="Подпись к фото"
+                tools:visibility="visible" />
+
+            <!-- Кнопка скачать -->
+            <Button
+                android:id="@+id/download_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/blue"
+                android:fontFamily="@font/ubuntu_light"
+                android:text="@string/download"
+                android:textSize="12sp"
+                android:drawableStart="@drawable/ic_download"
+                android:drawablePadding="4dp"
+                style="@style/Widget.Material3.Button.TextButton" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Время снизу -->
+    <TextView
+        android:id="@+id/message_date_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
+        android:fontFamily="@font/ubuntu_light"
+        android:textColor="?android:textColorSecondary"
+        android:textSize="12sp"
+        tools:text="12:34" />
+
+</LinearLayout>

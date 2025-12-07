@@ -1,37 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:orientation="vertical"
     android:padding="6dp">
+
+    <!-- Индикатор пересылки -->
+    <TextView
+        android:id="@+id/forwarded_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginBottom="4dp"
+        android:fontFamily="@font/ubuntu_light"
+        android:text="📩 Forwarded from Username"
+        android:textColor="#808080"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/bubble"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="50dp"
-        android:orientation="vertical"
         android:background="@drawable/msg_bubble_them"
+        android:orientation="vertical"
         android:padding="12dp">
 
         <TextView
             android:id="@+id/message_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textColor="@color/black"
+            android:lineSpacingExtra="2dp"
             android:maxWidth="260dp"
-            android:lineSpacingExtra="2dp" />
-
-        <TextView
-            android:id="@+id/message_date_tv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textColor="#808080"
-            android:layout_marginTop="6dp"
-            android:layout_gravity="start" />
+            android:textColor="@color/black"
+            android:textSize="16sp" />
 
     </LinearLayout>
-</RelativeLayout>
+
+    <!-- Дата снизу -->
+    <TextView
+        android:id="@+id/message_date_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="4dp"
+        android:textColor="#808080"
+        android:textSize="12sp" />
+
+</LinearLayout>

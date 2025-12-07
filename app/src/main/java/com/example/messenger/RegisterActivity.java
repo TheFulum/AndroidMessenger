@@ -3,6 +3,7 @@ package com.example.messenger;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Toast;
@@ -20,9 +21,9 @@ import com.google.firebase.database.FirebaseDatabase;
 import java.util.HashMap;
 
 public class RegisterActivity extends AppCompatActivity {
-
     private ActivityRegisterBinding binding;
     private boolean isLoading = false;
+    private boolean isPasswordVisible = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,9 +31,9 @@ public class RegisterActivity extends AppCompatActivity {
         binding = ActivityRegisterBinding.inflate(getLayoutInflater());
         EdgeToEdge.enable(this);
         setContentView(binding.getRoot());
-
         setupWindowInsets();
         setupUI();
+        setupShowPasswordButton();
     }
 
     private void setupWindowInsets() {
@@ -45,7 +46,6 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void setupUI() {
         updateSignUpButtonState();
-
         TextWatcher textWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -58,7 +58,6 @@ public class RegisterActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {}
         };
-
         binding.usernameEt.addTextChangedListener(textWatcher);
         binding.emailEt.addTextChangedListener(textWatcher);
         binding.passwordEt.addTextChangedListener(textWatcher);
@@ -72,13 +71,28 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
+    private void setupShowPasswordButton() {
+        binding.showPassBtn.setOnClickListener(v -> {
+            isPasswordVisible = !isPasswordVisible;
+            if (isPasswordVisible) {
+                // показать пароль
+                binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                binding.showPassBtn.setImageResource(R.drawable.baseline_visibility_24);
+            } else {
+                // скрыть пароль
+                binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                binding.showPassBtn.setImageResource(R.drawable.baseline_visibility_off_24);
+            }
+            // курсор в конец
+            binding.passwordEt.setSelection(binding.passwordEt.getText().length());
+        });
+    }
+
     private void updateSignUpButtonState() {
         String username = binding.usernameEt.getText().toString().trim();
         String email = binding.emailEt.getText().toString().trim();
         String password = binding.passwordEt.getText().toString().trim();
-
         boolean isValid = !username.isEmpty() && !email.isEmpty() && !password.isEmpty() && password.length() >= 6;
-
         binding.signUpBtn.setEnabled(isValid && !isLoading);
         binding.signUpBtn.setAlpha(isValid ? 1.0f : 0.5f);
     }
@@ -142,7 +156,6 @@ public class RegisterActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     showLoader(false);
                     Toast.makeText(this, "Error saving user data: " + e.getMessage(), Toast.LENGTH_LONG).show();
-
                     // Удаляем аккаунт из Auth, если не удалось сохранить в БД
                     if (FirebaseAuth.getInstance().getCurrentUser() != null) {
                         FirebaseAuth.getInstance().getCurrentUser().delete();
@@ -159,16 +172,14 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void showLoader(boolean show) {
         isLoading = show;
-
         binding.loaderBg.setVisibility(show ? View.VISIBLE : View.GONE);
         binding.loader.setVisibility(show ? View.VISIBLE : View.GONE);
-
         binding.signUpBtn.setEnabled(!show);
         binding.usernameEt.setEnabled(!show);
         binding.emailEt.setEnabled(!show);
         binding.passwordEt.setEnabled(!show);
         binding.signUpBackBtn.setEnabled(!show);
-
+        binding.showPassBtn.setEnabled(!show);
         if (!show) updateSignUpButtonState();
     }
 
