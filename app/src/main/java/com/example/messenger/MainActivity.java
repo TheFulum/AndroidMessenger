@@ -5,6 +5,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -39,6 +41,9 @@ public class MainActivity extends AppCompatActivity {
     private Fragment profileFragment;
     private Fragment currentFragment;
 
+    private Handler handler = new Handler();
+    private Runnable checkRunnable;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,43 +52,31 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Проверяем auth сразу
         if (!checkAuthentication()) {
             return;
         }
 
-        // Получаем ID пользователя
         currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
 
-        // Устанавливаем статус "В сети"
         if (currentUserId != null) {
             setUserOnline();
         }
 
-        // Инициализируем фрагменты
         initFragments();
-
-        // Настраиваем auth listener для отслеживания выхода
         setupAuthListener();
-
-        // Запрос permission для уведомлений
         requestNotificationPermissionIfNeeded();
 
-        // Загружаем начальный фрагмент
         if (savedInstanceState == null) {
             loadFragment(chatsFragment);
             binding.bottomNav.setSelectedItemId(R.id.chats);
         }
 
-        // Настраиваем bottom navigation
         setupBottomNavigation();
+        setupCheckTimer();
     }
 
-    /**
-     * Проверяет аутентификацию пользователя
-     */
     private boolean checkAuthentication() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) {
@@ -93,9 +86,6 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
-    /**
-     * Инициализирует все фрагменты заранее для избежания пересоздания
-     */
     private void initFragments() {
         chatsFragment = new ChatsFragment();
         newChatFragment = new NewChatFragment();
@@ -103,9 +93,6 @@ public class MainActivity extends AppCompatActivity {
         currentFragment = chatsFragment;
     }
 
-    /**
-     * Настраивает AuthStateListener для отслеживания состояния авторизации
-     */
     private void setupAuthListener() {
         authStateListener = firebaseAuth -> {
             FirebaseUser user = firebaseAuth.getCurrentUser();
@@ -116,9 +103,6 @@ public class MainActivity extends AppCompatActivity {
         FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
     }
 
-    /**
-     * Запрашивает разрешение на уведомления для Android 13+
-     */
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -136,9 +120,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Настраивает bottom navigation с оптимизацией переключения фрагментов
-     */
     private void setupBottomNavigation() {
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
@@ -161,9 +142,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Загружает фрагмент
-     */
     private void loadFragment(Fragment fragment) {
         getSupportFragmentManager()
                 .beginTransaction()
@@ -173,21 +151,13 @@ public class MainActivity extends AppCompatActivity {
         currentFragment = fragment;
     }
 
-    /**
-     * Запускает сервис для прослушивания новых сообщений
-     */
     private void startMessageService() {
         try {
             Intent serviceIntent = new Intent(this, MessageListenerService.class);
             startService(serviceIntent);
-        } catch (Exception e) {
-            // Сервис может не запуститься по разным причинам, игнорируем
-        }
+        } catch (Exception ignored) {}
     }
 
-    /**
-     * Переход на экран логина
-     */
     private void navigateToLogin() {
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -195,9 +165,6 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    /**
-     * Устанавливает статус пользователя "В сети"
-     */
     private void setUserOnline() {
         if (currentUserId == null) return;
 
@@ -211,9 +178,6 @@ public class MainActivity extends AppCompatActivity {
                 .updateChildren(status);
     }
 
-    /**
-     * Устанавливает статус пользователя "Не в сети"
-     */
     private void setUserOffline() {
         if (currentUserId == null) return;
 
@@ -227,55 +191,57 @@ public class MainActivity extends AppCompatActivity {
                 .updateChildren(status);
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    // 🔥 Проверка disabled аккаунта
+    private void checkIfDisabled() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
 
-        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startMessageService();
+        user.getIdToken(true)
+                .addOnFailureListener(e -> {
+                    Toast.makeText(MainActivity.this, "Your account has been banned", Toast.LENGTH_LONG).show();
+                    FirebaseAuth.getInstance().signOut();
+                    navigateToLogin();
+                });
+    }
+
+    private void setupCheckTimer() {
+        checkRunnable = new Runnable() {
+            @Override
+            public void run() {
+                checkIfDisabled();
+                handler.postDelayed(this, 15000); // каждые 15 секунд
             }
-        }
+        };
+        handler.post(checkRunnable);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Дополнительная проверка при возврате в активити
         checkAuthentication();
+        checkIfDisabled();
 
-        // Устанавливаем статус "В сети"
-        if (currentUserId != null) {
-            setUserOnline();
-        }
+        if (currentUserId != null) setUserOnline();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
 
-        // Устанавливаем статус "Не в сети"
-        if (currentUserId != null) {
-            setUserOffline();
-        }
+        if (currentUserId != null) setUserOffline();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        // Удаляем auth listener
         if (authStateListener != null) {
             FirebaseAuth.getInstance().removeAuthStateListener(authStateListener);
         }
 
-        // Устанавливаем статус "Не в сети"
-        if (currentUserId != null) {
-            setUserOffline();
-        }
+        if (currentUserId != null) setUserOffline();
 
-        // Очищаем binding
+        handler.removeCallbacks(checkRunnable);
         binding = null;
     }
 }

@@ -66,9 +66,7 @@ public class LoginActivity extends AppCompatActivity {
 
         TextWatcher tw = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                updateLoginButtonState();
-            }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { updateLoginButtonState(); }
             @Override public void afterTextChanged(Editable s) {}
         };
 
@@ -92,16 +90,13 @@ public class LoginActivity extends AppCompatActivity {
             isPasswordVisible = !isPasswordVisible;
 
             if (isPasswordVisible) {
-                // показать пароль
                 binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
                 showPassBtn.setImageResource(R.drawable.baseline_visibility_24);
             } else {
-                // скрыть пароль
                 binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
                 showPassBtn.setImageResource(R.drawable.baseline_visibility_off_24);
             }
 
-            // курсор в конец
             binding.passwordEt.setSelection(binding.passwordEt.getText().length());
         });
     }
@@ -140,7 +135,13 @@ public class LoginActivity extends AppCompatActivity {
                         requestNotificationPermissionIfNeeded();
                         navigateToMain();
                     } else {
-                        Toast.makeText(this, task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        Exception e = task.getException();
+
+                        if (e != null && e.getMessage() != null && e.getMessage().contains("disabled")) {
+                            Toast.makeText(this, "Account banned by administration", Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
                     }
                 });
     }

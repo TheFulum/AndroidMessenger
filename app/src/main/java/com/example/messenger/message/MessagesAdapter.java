@@ -7,10 +7,12 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -19,6 +21,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -27,9 +30,12 @@ import com.example.messenger.R;
 import com.example.messenger.SelectChatActivity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -152,6 +158,9 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
         holder.messageTv.setText(cleanForwardedText(message.getText()));
         holder.dateTv.setText(message.getDate());
+
+        // Новое: Показываем метку "изменено"
+        holder.editedTv.setVisibility(message.isEdited() ? View.VISIBLE : View.GONE);
 
         holder.itemView.setOnLongClickListener(v -> {
             showMessageActionsSheet(v, message, isMyMessage);
@@ -437,6 +446,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
         LinearLayout actionForward = sheetView.findViewById(R.id.action_forward);
         LinearLayout actionDelete = sheetView.findViewById(R.id.action_delete);
+        LinearLayout actionEdit = sheetView.findViewById(R.id.action_edit);  // Новое
 
         actionForward.setOnClickListener(v -> {
             bottomSheet.dismiss();
@@ -453,8 +463,86 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             actionDelete.setVisibility(View.GONE);
         }
 
+        // Новое: Показываем "Изменить" только для своих текстовых сообщений без файлов
+        if (isMyMessage && !message.hasFile() && message.getText() != null && !message.getText().isEmpty()) {
+            actionEdit.setVisibility(View.VISIBLE);
+            actionEdit.setOnClickListener(v -> {
+                bottomSheet.dismiss();
+                showEditDialog(view.getContext(), message);
+            });
+        } else {
+            actionEdit.setVisibility(View.GONE);
+        }
+
         bottomSheet.setContentView(sheetView);
         bottomSheet.show();
+    }
+
+    // Новое: Диалог для редактирования текста
+    private void showEditDialog(Context context, Message message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle("Изменить сообщение");
+
+        final EditText input = new EditText(context);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        input.setText(message.getText());
+        input.setSelection(input.getText().length());
+
+        builder.setView(input);
+
+        builder.setPositiveButton("Сохранить", (dialog, which) -> {
+            String newText = input.getText().toString().trim();
+            if (newText.isEmpty()) {
+                Toast.makeText(context, "Сообщение не может быть пустым", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (newText.equals(message.getText())) {
+                return;  // Нет изменений
+            }
+            updateMessageText(context, message, newText);
+        });
+        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    // Новое: Обновление текста в Firebase
+    private void updateMessageText(Context context, Message message, String newText) {
+        DatabaseReference msgRef = FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("messages")
+                .child(message.getId());
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", newText);
+        updates.put("isEdited", true);
+
+        msgRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(context, "Сообщение изменено", Toast.LENGTH_SHORT).show();
+                    updateLastMessagePreviewIfNeeded(message, newText);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Ошибка изменения", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    // Новое: Обновление предпросмотра последнего сообщения, если это было последнее
+    private void updateLastMessagePreviewIfNeeded(Message message, String newText) {
+        if (messages.isEmpty() || !messages.get(messages.size() - 1).getId().equals(message.getId())) {
+            return;
+        }
+
+        String preview = newText.length() > 50 ? newText.substring(0, 47) + "..." : newText;
+
+        Map<String, Object> update = new HashMap<>();
+        update.put("lastMessagePreview", preview);
+
+        FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .updateChildren(update);
     }
 
     private void forwardMessage(View view, Message message) {
@@ -518,13 +606,14 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
     // ViewHolders
     static class TextMessageViewHolder extends RecyclerView.ViewHolder {
-        TextView messageTv, dateTv, forwardedTv;
+        TextView messageTv, dateTv, forwardedTv, editedTv;  // Новое: editedTv
 
         TextMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             messageTv = itemView.findViewById(R.id.message_tv);
             dateTv = itemView.findViewById(R.id.message_date_tv);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+            editedTv = itemView.findViewById(R.id.edited_tv);  // Новое
         }
     }
 

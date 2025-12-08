@@ -1,74 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="8dp"
-    android:background="@android:color/white">
+    android:orientation="vertical">
 
-    <!-- Кнопка "Переслать" -->
+    <!-- Действие: Переслать -->
     <LinearLayout
         android:id="@+id/action_forward"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="?attr/selectableItemBackground"
+        android:padding="16dp"
         android:clickable="true"
         android:focusable="true">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_forward"
-            app:tint="@color/black" />
+            android:src="@drawable/ic_forward" /> <!-- Иконка для пересылки, добавьте drawable если нужно -->
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Forward"
+            android:text="Переслать"
             android:textSize="16sp"
-            android:textColor="@color/black"
             android:layout_marginStart="16dp" />
     </LinearLayout>
 
-    <!-- Разделитель -->
-    <View
+    <LinearLayout
+        android:id="@+id/action_edit"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#E0E0E0"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true">
 
-    <!-- Кнопка "Удалить" (только для своих сообщений) -->
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_edit" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Изменить"
+            android:textSize="16sp"
+            android:layout_marginStart="16dp" />
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/action_delete"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="?attr/selectableItemBackground"
+        android:padding="16dp"
         android:clickable="true"
         android:focusable="true">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_delete"
-            app:tint="#F44336" />
+            android:src="@drawable/ic_delete" /> <!-- Иконка для удаления, добавьте drawable если нужно -->
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Delete"
+            android:text="Удалить"
             android:textSize="16sp"
-            android:textColor="#F44336"
             android:layout_marginStart="16dp" />
     </LinearLayout>
+
 
 </LinearLayout>

@@ -630,6 +630,9 @@ public class ChatActivity extends AppCompatActivity {
                     Boolean isForwarded = msgSnapshot.child("isForwarded").getValue(Boolean.class);
                     String forwardedFrom = msgSnapshot.child("forwardedFrom").getValue(String.class);
 
+                    // Новое: ЗАГРУЖАЕМ ДАННЫЕ О РЕДАКТИРОВАНИИ
+                    Boolean isEdited = msgSnapshot.child("isEdited").getValue(Boolean.class);
+
                     if (ownerId != null) {
                         Message message = new Message(
                                 id,
@@ -652,6 +655,9 @@ public class ChatActivity extends AppCompatActivity {
                                 message.setForwardedFrom(forwardedFrom);
                             }
                         }
+
+                        // УСТАНАВЛИВАЕМ ДАННЫЕ О РЕДАКТИРОВАНИИ
+                        message.setEdited(isEdited != null && isEdited);
 
                         messages.add(message);
                     }

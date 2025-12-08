@@ -17,6 +17,9 @@ public class Message {
     private boolean isForwarded;
     private String forwardedFrom;
 
+    // Новое поле для редактирования
+    private boolean isEdited;
+
     public Message() {} // обязательно для Firebase
 
     public Message(String id, String ownerId, String text, String date, long timestamp) {
@@ -25,6 +28,7 @@ public class Message {
         this.text = text;
         this.date = date;
         this.timestamp = timestamp;
+        this.isEdited = false;  // По умолчанию false
     }
 
     // Конструктор для сообщений с файлами
@@ -42,6 +46,7 @@ public class Message {
         this.fileSize = fileSize;
         this.voiceDuration = voiceDuration;
         this.videoDuration = videoDuration;
+        this.isEdited = false;  // По умолчанию false
     }
 
     // Getters и Setters
@@ -83,6 +88,9 @@ public class Message {
 
     public String getForwardedFrom() { return forwardedFrom; }
     public void setForwardedFrom(String forwardedFrom) { this.forwardedFrom = forwardedFrom; }
+
+    public boolean isEdited() { return isEdited; }
+    public void setEdited(boolean edited) { isEdited = edited; }
 
     // Вспомогательные методы
     public boolean hasFile() {

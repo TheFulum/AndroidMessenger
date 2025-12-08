@@ -63,8 +63,8 @@ public class MessageListenerService extends Service {
                 if (msg.getOwnerId() != null && msg.getOwnerId().equals(myId))
                     return;
 
-                // Загружаем имя отправителя и показываем уведомление
-                loadUsernameAndNotify(otherUserId, msg.getText());
+                // Загружаем имя отправителя и показываем уведомление (добавили chatId)
+                loadUsernameAndNotify(otherUserId, msg.getText(), chatId);
             }
 
             @Override public void onChildChanged(@NonNull DataSnapshot s, String p) {}
@@ -74,7 +74,8 @@ public class MessageListenerService extends Service {
         });
     }
 
-    private void loadUsernameAndNotify(String userId, String messageText) {
+    // Добавили chatId в метод
+    private void loadUsernameAndNotify(String userId, String messageText, String chatId) {
         FirebaseDatabase.getInstance()
                 .getReference("Users")
                 .child(userId)
@@ -85,21 +86,23 @@ public class MessageListenerService extends Service {
                         String username = snapshot.getValue(String.class);
                         if (username == null) username = "Unknown User";
 
-                        // Показываем уведомление с именем отправителя
+                        // Показываем уведомление с именем отправителя (добавили chatId)
                         NotificationHelper.showMessageNotification(
                                 MessageListenerService.this,
                                 username,  // ← Имя в заголовке
-                                messageText  // ← Текст сообщения
+                                messageText,  // ← Текст сообщения
+                                chatId  // ← Новый параметр
                         );
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        // Если не удалось загрузить имя, показываем хоть что-то
+                        // Если не удалось загрузить имя, показываем хоть что-то (добавили chatId)
                         NotificationHelper.showMessageNotification(
                                 MessageListenerService.this,
                                 "New Message",
-                                messageText
+                                messageText,
+                                chatId
                         );
                     }
                 });
