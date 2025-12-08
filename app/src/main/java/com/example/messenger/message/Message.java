@@ -11,6 +11,7 @@ public class Message {
     private String fileName;       // Имя файла
     private long fileSize;         // Размер в байтах
     private long voiceDuration;    // Длительность голосового в миллисекундах
+    private long videoDuration;    // Длительность видео в миллисекундах
 
     // Пересылка
     private boolean isForwarded;
@@ -28,7 +29,8 @@ public class Message {
 
     // Конструктор для сообщений с файлами
     public Message(String id, String ownerId, String text, String date, long timestamp,
-                   String fileUrl, String fileType, String fileName, long fileSize, long voiceDuration) {
+                   String fileUrl, String fileType, String fileName, long fileSize,
+                   long voiceDuration, long videoDuration) {
         this.id = id;
         this.ownerId = ownerId;
         this.text = text;
@@ -39,6 +41,7 @@ public class Message {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.voiceDuration = voiceDuration;
+        this.videoDuration = videoDuration;
     }
 
     // Getters и Setters
@@ -72,6 +75,9 @@ public class Message {
     public long getVoiceDuration() { return voiceDuration; }
     public void setVoiceDuration(long voiceDuration) { this.voiceDuration = voiceDuration; }
 
+    public long getVideoDuration() { return videoDuration; }
+    public void setVideoDuration(long videoDuration) { this.videoDuration = videoDuration; }
+
     public boolean isForwarded() { return isForwarded; }
     public void setForwarded(boolean forwarded) { isForwarded = forwarded; }
 
@@ -87,13 +93,29 @@ public class Message {
         return "image".equals(fileType);
     }
 
+    public boolean isVideo() {
+        return "video".equals(fileType);
+    }
+
     public boolean isVoice() {
         return "voice".equals(fileType);
     }
 
-    public String getFormattedDuration() {
+    public boolean isDocument() {
+        return "document".equals(fileType);
+    }
+
+    public String getFormattedVoiceDuration() {
         if (voiceDuration <= 0) return "0:00";
         int seconds = (int) (voiceDuration / 1000);
+        int minutes = seconds / 60;
+        seconds = seconds % 60;
+        return String.format("%d:%02d", minutes, seconds);
+    }
+
+    public String getFormattedVideoDuration() {
+        if (videoDuration <= 0) return "0:00";
+        int seconds = (int) (videoDuration / 1000);
         int minutes = seconds / 60;
         seconds = seconds % 60;
         return String.format("%d:%02d", minutes, seconds);

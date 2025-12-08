@@ -42,4 +42,5 @@
     <string name="show_password">Show password</string>
     <string name="search_chats">Search chats...</string>
     <string name="search_users">Search users...</string>
+    <string name="video_message">Video-message</string>
 </resources>

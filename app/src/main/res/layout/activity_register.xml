@@ -61,8 +61,8 @@
             android:id="@+id/username_icon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            app:srcCompat="@drawable/username_icon"
-            app:tint="?android:textColorSecondary" />
+            app:tint="@color/primary"
+            app:srcCompat="@drawable/username_icon" />
 
         <EditText
             android:id="@+id/username_et"
@@ -97,8 +97,8 @@
             android:id="@+id/email_icon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            app:srcCompat="@drawable/email_icon"
-            app:tint="?android:textColorSecondary" />
+            app:tint="@color/primary"
+            app:srcCompat="@drawable/email_icon" />
 
         <EditText
             android:id="@+id/email_et"
@@ -134,8 +134,8 @@
             android:id="@+id/password_icon"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            app:srcCompat="@drawable/password_icon"
-            app:tint="?android:textColorSecondary" />
+            app:tint="@color/primary"
+            app:srcCompat="@drawable/password_icon" />
 
         <EditText
             android:id="@+id/password_et"
@@ -158,7 +158,7 @@
             android:layout_height="24dp"
             android:background="@android:color/transparent"
             android:src="@drawable/baseline_visibility_off_24"
-            app:tint="?android:textColorSecondary"
+            app:tint="@color/primary"
             android:contentDescription="@string/show_password"/>
     </LinearLayout>
 

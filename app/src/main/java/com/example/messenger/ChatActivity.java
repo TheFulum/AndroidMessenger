@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 
 import android.database.Cursor;
@@ -123,6 +124,17 @@ public class ChatActivity extends AppCompatActivity {
     private void setupUI() {
         binding.backBtn.setOnClickListener(v -> finish());
 
+        View.OnClickListener openProfileListener = v -> {
+            if (receiverId != null) {
+                Intent intent = new Intent(ChatActivity.this, UserProfileActivity.class);
+                intent.putExtra("userId", receiverId);
+                startActivity(intent);
+            }
+        };
+
+        binding.chatProfileImage.setOnClickListener(openProfileListener);
+        binding.chatUsernameTv.setOnClickListener(openProfileListener);
+
         binding.attachFileBtn.setOnClickListener(v -> showFileTypeDialog());
 
         binding.sendMessageBtn.setOnClickListener(v -> sendMessage());
@@ -181,13 +193,15 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void showFileTypeDialog() {
-        String[] options = {"📷 Фото", "📄 Документ"};
+        String[] options = {"📷 Фото", "🎥 Видео", "📄 Документ"};
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Выберите тип файла")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
                         filePickerLauncher.launch("image/*");
+                    } else if (which == 1) {
+                        filePickerLauncher.launch("video/*");
                     } else {
                         filePickerLauncher.launch("*/*");
                     }
@@ -216,11 +230,21 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         String fileType = "document";
-        if (mimeType != null && mimeType.startsWith("image/")) {
-            fileType = "image";
+        if (mimeType != null) {
+            if (mimeType.startsWith("image/")) {
+                fileType = "image";
+            } else if (mimeType.startsWith("video/")) {
+                fileType = "video";
+            }
         }
 
-        uploadFileToCloudinary(uri, fileName, fileSize, fileType);
+        // Для видео получаем длительность
+        long videoDuration = 0;
+        if (fileType.equals("video")) {
+            videoDuration = getVideoDuration(uri);
+        }
+
+        uploadFileToCloudinary(uri, fileName, fileSize, fileType, videoDuration);
     }
 
     private String getFileName(Uri uri) {
@@ -249,7 +273,8 @@ public class ChatActivity extends AppCompatActivity {
         return fileSize;
     }
 
-    private void uploadFileToCloudinary(Uri fileUri, String fileName, long fileSize, String fileType) {
+
+    private void uploadFileToCloudinary(Uri fileUri, String fileName, long fileSize, String fileType, long videoDuration) {
         if (isUploading) {
             Toast.makeText(this, "Дождитесь завершения предыдущей загрузки", Toast.LENGTH_SHORT).show();
             return;
@@ -266,7 +291,15 @@ public class ChatActivity extends AppCompatActivity {
         binding.attachFileBtn.setEnabled(false);
         binding.sendMessageBtn.setEnabled(false);
 
-        String folder = fileType.equals("image") ? "messenger_images" : "messenger_files";
+        String folder;
+        if (fileType.equals("image")) {
+            folder = "messenger_images";
+        } else if (fileType.equals("video")) {
+            folder = "messenger_videos";
+        } else {
+            folder = "messenger_files";
+        }
+
         String publicId = "file_" + System.currentTimeMillis();
 
         MediaManager.get().upload(fileUri)
@@ -296,7 +329,7 @@ public class ChatActivity extends AppCompatActivity {
                             binding.attachFileBtn.setEnabled(true);
                             updateSendButtonState();
 
-                            sendMessageWithFile(fileUrl, fileName, fileSize, fileType);
+                            sendMessageWithFile(fileUrl, fileName, fileSize, fileType, videoDuration);
                         });
                     }
 
@@ -320,7 +353,7 @@ public class ChatActivity extends AppCompatActivity {
                 .dispatch();
     }
 
-    private void sendMessageWithFile(String fileUrl, String fileName, long fileSize, String fileType) {
+    private void sendMessageWithFile(String fileUrl, String fileName, long fileSize, String fileType, long videoDuration) {
         long now = System.currentTimeMillis();
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
@@ -336,6 +369,10 @@ public class ChatActivity extends AppCompatActivity {
         msg.put("fileName", fileName);
         msg.put("fileSize", fileSize);
 
+        if (fileType.equals("video") && videoDuration > 0) {
+            msg.put("videoDuration", videoDuration);
+        }
+
         DatabaseReference msgRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
                 .child(chatId)
@@ -344,7 +381,14 @@ public class ChatActivity extends AppCompatActivity {
 
         msgRef.setValue(msg)
                 .addOnSuccessListener(aVoid -> {
-                    String preview = fileType.equals("image") ? "📷 Фото" : "📄 " + fileName;
+                    String preview;
+                    if (fileType.equals("image")) {
+                        preview = "📷 Фото";
+                    } else if (fileType.equals("video")) {
+                        preview = "🎥 Видео";
+                    } else {
+                        preview = "📄 " + fileName;
+                    }
                     updateLastMessage(preview, now);
                     binding.messageEt.setText("");
                     scrollToBottom();
@@ -580,6 +624,7 @@ public class ChatActivity extends AppCompatActivity {
                     String fileName = msgSnapshot.child("fileName").getValue(String.class);
                     Long fileSize = msgSnapshot.child("fileSize").getValue(Long.class);
                     Long voiceDuration = msgSnapshot.child("voiceDuration").getValue(Long.class);
+                    Long videoDuration = msgSnapshot.child("videoDuration").getValue(Long.class); // ДОБАВИЛИ
 
                     // ЗАГРУЖАЕМ ДАННЫЕ О ПЕРЕСЫЛКЕ
                     Boolean isForwarded = msgSnapshot.child("isForwarded").getValue(Boolean.class);
@@ -596,7 +641,8 @@ public class ChatActivity extends AppCompatActivity {
                                 fileType,
                                 fileName,
                                 fileSize != null ? fileSize : 0L,
-                                voiceDuration != null ? voiceDuration : 0L
+                                voiceDuration != null ? voiceDuration : 0L,
+                                videoDuration != null ? videoDuration : 0L  // ДОБАВИЛИ
                         );
 
                         // УСТАНАВЛИВАЕМ ДАННЫЕ О ПЕРЕСЫЛКЕ
@@ -884,4 +930,18 @@ public class ChatActivity extends AppCompatActivity {
                     Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
                 });
     }
+
+    private long getVideoDuration(Uri videoUri) {
+        try {
+            android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+            retriever.setDataSource(this, videoUri);
+            String duration = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+            retriever.release();
+            return duration != null ? Long.parseLong(duration) : 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
 }

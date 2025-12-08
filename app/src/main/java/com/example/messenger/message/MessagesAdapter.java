@@ -22,6 +22,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.messenger.MediaViewerActivity;
 import com.example.messenger.R;
 import com.example.messenger.SelectChatActivity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -40,6 +41,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private static final int TYPE_DOCUMENT_OTHER = 5;
     private static final int TYPE_VOICE_MY = 6;
     private static final int TYPE_VOICE_OTHER = 7;
+    private static final int TYPE_VIDEO_MY = 8;
+    private static final int TYPE_VIDEO_OTHER = 9;
 
     private List<Message> messages;
     private String chatId;
@@ -67,6 +70,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         if (message.hasFile()) {
             if (message.isImage()) {
                 return isMy ? TYPE_IMAGE_MY : TYPE_IMAGE_OTHER;
+            } else if (message.isVideo()) {
+                return isMy ? TYPE_VIDEO_MY : TYPE_VIDEO_OTHER;
             } else if (message.isVoice()) {
                 return isMy ? TYPE_VOICE_MY : TYPE_VOICE_OTHER;
             } else {
@@ -95,6 +100,12 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             case TYPE_IMAGE_OTHER:
                 return new ImageMessageViewHolder(
                         inflater.inflate(R.layout.message_with_image, parent, false));
+            case TYPE_VIDEO_MY:
+                return new VideoMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_video_my, parent, false));
+            case TYPE_VIDEO_OTHER:
+                return new VideoMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_video, parent, false));
             case TYPE_DOCUMENT_MY:
                 return new DocumentMessageViewHolder(
                         inflater.inflate(R.layout.message_with_document_my, parent, false));
@@ -122,6 +133,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             bindTextMessage((TextMessageViewHolder) holder, message, isMyMessage);
         } else if (holder instanceof ImageMessageViewHolder) {
             bindImageMessage((ImageMessageViewHolder) holder, message, isMyMessage);
+        } else if (holder instanceof VideoMessageViewHolder) {
+            bindVideoMessage((VideoMessageViewHolder) holder, message, isMyMessage);
         } else if (holder instanceof DocumentMessageViewHolder) {
             bindDocumentMessage((DocumentMessageViewHolder) holder, message, isMyMessage);
         } else if (holder instanceof VoiceMessageViewHolder) {
@@ -130,7 +143,6 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     private void bindTextMessage(TextMessageViewHolder holder, Message message, boolean isMyMessage) {
-        // Показываем индикатор пересылки
         if (message.isForwarded() && message.getForwardedFrom() != null) {
             holder.forwardedTv.setVisibility(View.VISIBLE);
             holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
@@ -148,7 +160,6 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     private void bindImageMessage(ImageMessageViewHolder holder, Message message, boolean isMyMessage) {
-        // Показываем индикатор пересылки
         if (message.isForwarded() && message.getForwardedFrom() != null) {
             holder.forwardedTv.setVisibility(View.VISIBLE);
             holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
@@ -173,7 +184,50 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         holder.dateTv.setText(message.getDate());
 
         holder.imageView.setOnClickListener(v -> {
-            openImageFullscreen(v.getContext(), message.getFileUrl());
+            openMediaFullscreen(v.getContext(), message.getFileUrl(), "image");
+        });
+
+        holder.downloadBtn.setOnClickListener(v -> {
+            downloadFile(v.getContext(), message.getFileUrl(), message.getFileName());
+        });
+
+        holder.itemView.setOnLongClickListener(v -> {
+            showMessageActionsSheet(v, message, isMyMessage);
+            return true;
+        });
+    }
+
+    private void bindVideoMessage(VideoMessageViewHolder holder, Message message, boolean isMyMessage) {
+        if (message.isForwarded() && message.getForwardedFrom() != null) {
+            holder.forwardedTv.setVisibility(View.VISIBLE);
+            holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
+        } else {
+            holder.forwardedTv.setVisibility(View.GONE);
+        }
+
+        // Загружаем превью видео (первый кадр)
+        Glide.with(holder.itemView.getContext())
+                .load(message.getFileUrl())
+                .placeholder(R.drawable.ic_image_placeholder)
+                .error(R.drawable.ic_image_placeholder)
+                .into(holder.videoThumbnail);
+
+        // Отображаем длительность
+        holder.videoDurationTv.setText(message.getFormattedVideoDuration());
+
+        String displayText = cleanForwardedText(message.getText());
+        if (displayText != null && !displayText.isEmpty()) {
+            holder.messageTv.setVisibility(View.VISIBLE);
+            holder.messageTv.setText(displayText);
+        } else {
+            holder.messageTv.setVisibility(View.GONE);
+        }
+
+        holder.dateTv.setText(message.getDate());
+
+        // Клик по превью открывает видео на весь экран
+        holder.videoThumbnail.setOnClickListener(v -> {
+            openMediaFullscreen(v.getContext(), message.getFileUrl(), "video");
         });
 
         holder.downloadBtn.setOnClickListener(v -> {
@@ -187,7 +241,6 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     private void bindDocumentMessage(DocumentMessageViewHolder holder, Message message, boolean isMyMessage) {
-        // Показываем индикатор пересылки
         if (message.isForwarded() && message.getForwardedFrom() != null) {
             holder.forwardedTv.setVisibility(View.VISIBLE);
             holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
@@ -219,7 +272,6 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     private void bindVoiceMessage(VoiceMessageViewHolder holder, Message message, boolean isMyMessage) {
-        // Показываем индикатор пересылки
         if (message.isForwarded() && message.getForwardedFrom() != null) {
             holder.forwardedTv.setVisibility(View.VISIBLE);
             holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
@@ -227,7 +279,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             holder.forwardedTv.setVisibility(View.GONE);
         }
 
-        holder.voiceDurationTv.setText(message.getFormattedDuration());
+        holder.voiceDurationTv.setText(message.getFormattedVoiceDuration());
         holder.dateTv.setText(message.getDate());
         holder.seekBar.setProgress(0);
         holder.playPauseBtn.setImageResource(R.drawable.ic_play);
@@ -277,7 +329,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             currentPlayer.setOnCompletionListener(mp -> {
                 holder.playPauseBtn.setImageResource(R.drawable.ic_play);
                 holder.seekBar.setProgress(0);
-                holder.voiceDurationTv.setText(message.getFormattedDuration());
+                holder.voiceDurationTv.setText(message.getFormattedVoiceDuration());
                 releasePlayer();
             });
 
@@ -346,9 +398,11 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         return text;
     }
 
-    private void openImageFullscreen(Context context, String imageUrl) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(imageUrl));
+    private void openMediaFullscreen(Context context, String mediaUrl, String mediaType) {
+        Intent intent = new Intent(context, MediaViewerActivity.class);
+        intent.putExtra("mediaUrl", mediaUrl);
+        intent.putExtra("mediaType", mediaType);
+        intent.putExtra("title", mediaType.equals("image") ? "Изображение" : "Видео");
         context.startActivity(intent);
     }
 
@@ -417,6 +471,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
             if (message.isVoice()) {
                 intent.putExtra("voiceDuration", message.getVoiceDuration());
+            } else if (message.isVideo()) {
+                intent.putExtra("videoDuration", message.getVideoDuration());
             }
         }
 
@@ -480,6 +536,22 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         ImageMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.message_image);
+            messageTv = itemView.findViewById(R.id.message_tv);
+            dateTv = itemView.findViewById(R.id.message_date_tv);
+            downloadBtn = itemView.findViewById(R.id.download_btn);
+            forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+        }
+    }
+
+    static class VideoMessageViewHolder extends RecyclerView.ViewHolder {
+        ImageView videoThumbnail;
+        TextView videoDurationTv, messageTv, dateTv, forwardedTv;
+        Button downloadBtn;
+
+        VideoMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            videoThumbnail = itemView.findViewById(R.id.video_thumbnail);
+            videoDurationTv = itemView.findViewById(R.id.video_duration_tv);
             messageTv = itemView.findViewById(R.id.message_tv);
             dateTv = itemView.findViewById(R.id.message_date_tv);
             downloadBtn = itemView.findViewById(R.id.download_btn);
