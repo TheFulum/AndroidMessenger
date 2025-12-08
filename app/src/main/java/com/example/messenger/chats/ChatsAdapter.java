@@ -48,30 +48,25 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         String username = (String) chatData.get("username");
         String chatId = (String) chatData.get("chatId");
         String otherUid = (String) chatData.get("otherUid");
-        Chat chat = (Chat) chatData.get("chat");
         long lastMessageTime = (long) chatData.get("lastMessageTime");
-
-        // Получаем статус онлайн
         Boolean isOnline = (Boolean) chatData.get("isOnline");
         Long lastSeen = (Long) chatData.get("lastSeen");
+        int unreadCount = chatData.get("unreadCount") != null ? (int) chatData.get("unreadCount") : 0;
 
-        // Устанавливаем username
         holder.usernameTv.setText(username != null ? username : "Loading...");
-
-        // Обновляем статус пользователя
         updateUserStatus(holder, isOnline, lastSeen);
-
-        // Загружаем фото профиля собеседника
         loadProfileImage(holder, otherUid);
 
-        // Форматируем время последнего сообщения
-        if (lastMessageTime > 0) {
-            holder.lastMessageTimeTv.setText(formatTime(lastMessageTime));
+        holder.lastMessageTimeTv.setText(lastMessageTime > 0 ? formatTime(lastMessageTime) : "");
+
+        // Индикатор непрочитанных сообщений
+        if (unreadCount > 0) {
+            holder.unreadCountTv.setText(String.valueOf(unreadCount));
+            holder.unreadCountTv.setVisibility(View.VISIBLE);
         } else {
-            holder.lastMessageTimeTv.setText("");
+            holder.unreadCountTv.setVisibility(View.GONE);
         }
 
-        // Клик по чату
         holder.itemView.setOnClickListener(v -> {
             if (chatId != null) {
                 Intent intent = new Intent(v.getContext(), ChatActivity.class);
@@ -81,20 +76,15 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         });
     }
 
-    /**
-     * Обновляет статус пользователя (В сети / Был в сети)
-     */
     private void updateUserStatus(ChatViewHolder holder, Boolean isOnline, Long lastSeen) {
-        if (holder.statusTv == null) return; // Если статус TextView отсутствует в layout
-
+        if (holder.statusTv == null) return;
         if (isOnline != null && isOnline) {
             holder.statusTv.setText("В сети");
             holder.statusTv.setTextColor(holder.itemView.getContext()
                     .getResources().getColor(android.R.color.holo_green_dark));
             holder.statusTv.setVisibility(View.VISIBLE);
         } else if (lastSeen != null && lastSeen > 0) {
-            String timeAgo = getTimeAgo(lastSeen);
-            holder.statusTv.setText("Был(а) " + timeAgo);
+            holder.statusTv.setText("Был(а) " + getTimeAgo(lastSeen));
             holder.statusTv.setTextColor(holder.itemView.getContext()
                     .getResources().getColor(android.R.color.darker_gray));
             holder.statusTv.setVisibility(View.VISIBLE);
@@ -103,9 +93,6 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         }
     }
 
-    /**
-     * Форматирует timestamp в "только что", "5 мин назад" и т.д.
-     */
     private String getTimeAgo(long timestamp) {
         long now = System.currentTimeMillis();
         long diff = now - timestamp;
@@ -115,23 +102,13 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         long hours = minutes / 60;
         long days = hours / 24;
 
-        if (seconds < 60) {
-            return "только что";
-        } else if (minutes < 60) {
-            return minutes + " мин. назад";
-        } else if (hours < 24) {
-            return hours + " ч. назад";
-        } else if (days < 7) {
-            return days + " д. назад";
-        } else {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
-            return sdf.format(new Date(timestamp));
-        }
+        if (seconds < 60) return "только что";
+        else if (minutes < 60) return minutes + " мин. назад";
+        else if (hours < 24) return hours + " ч. назад";
+        else if (days < 7) return days + " д. назад";
+        else return new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(new Date(timestamp));
     }
 
-    /**
-     * Загружает фото профиля пользователя из Firebase
-     */
     private void loadProfileImage(ChatViewHolder holder, String uid) {
         if (uid == null) {
             holder.profileImageView.setImageResource(R.drawable.baseline_person_24);
@@ -146,16 +123,13 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         String imageUrl = snapshot.getValue(String.class);
-
                         if (imageUrl != null && !imageUrl.isEmpty()) {
                             Glide.with(holder.itemView.getContext())
                                     .load(imageUrl)
                                     .placeholder(R.drawable.baseline_person_24)
                                     .error(R.drawable.baseline_person_24)
                                     .into(holder.profileImageView);
-                        } else {
-                            holder.profileImageView.setImageResource(R.drawable.baseline_person_24);
-                        }
+                        } else holder.profileImageView.setImageResource(R.drawable.baseline_person_24);
                     }
 
                     @Override
@@ -165,27 +139,13 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
                 });
     }
 
-    /**
-     * Форматирует timestamp в читаемое время
-     */
     private String formatTime(long timestamp) {
         long now = System.currentTimeMillis();
         long diff = now - timestamp;
-
-        // Сегодня - показываем только время
-        if (diff < 24 * 60 * 60 * 1000) {
-            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
-            return timeFormat.format(new Date(timestamp));
-        }
-
-        // Вчера
-        if (diff < 2 * 24 * 60 * 60 * 1000) {
-            return "Вчера";
-        }
-
-        // Больше - показываем дату
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM", Locale.getDefault());
-        return dateFormat.format(new Date(timestamp));
+        if (diff < 24 * 60 * 60 * 1000)
+            return new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(timestamp));
+        if (diff < 2 * 24 * 60 * 60 * 1000) return "Вчера";
+        return new SimpleDateFormat("dd.MM", Locale.getDefault()).format(new Date(timestamp));
     }
 
     @Override
@@ -196,16 +156,17 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
     static class ChatViewHolder extends RecyclerView.ViewHolder {
         CircleImageView profileImageView;
         TextView usernameTv;
-        TextView statusTv; // ДОБАВИЛИ
-        TextView lastMessagePreviewTv;
+        TextView statusTv;
         TextView lastMessageTimeTv;
+        TextView unreadCountTv; // <-- добавлено
 
         ChatViewHolder(@NonNull View itemView) {
             super(itemView);
             profileImageView = itemView.findViewById(R.id.chat_profile_iv);
             usernameTv = itemView.findViewById(R.id.chat_username_tv);
-            statusTv = itemView.findViewById(R.id.chat_status_tv); // ДОБАВИЛИ
+            statusTv = itemView.findViewById(R.id.chat_status_tv);
             lastMessageTimeTv = itemView.findViewById(R.id.last_message_time_tv);
+            unreadCountTv = itemView.findViewById(R.id.unread_count_tv); // <-- добавлено
         }
     }
 }

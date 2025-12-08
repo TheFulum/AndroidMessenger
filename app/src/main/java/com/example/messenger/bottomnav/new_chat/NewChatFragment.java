@@ -195,6 +195,8 @@ public class NewChatFragment extends Fragment {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot chatsSnapshot) {
 
+                        if (getView() == null || binding == null) return; // 🔹 проверка
+
                         ArrayList<User> usersWithoutChats = new ArrayList<>();
 
                         for (User user : allUsers) {
@@ -209,14 +211,16 @@ public class NewChatFragment extends Fragment {
                         allUsers.clear();
                         allUsers.addAll(usersWithoutChats);
 
-                        // Применяем текущий фильтр поиска
-                        filterUsers(binding.searchEt.getText().toString());
+                        // Применяем текущий фильтр поиска безопасно
+                        String query = binding.searchEt != null ? binding.searchEt.getText().toString() : "";
+                        filterUsers(query);
                     }
 
                     @Override
                     public void onCancelled(@NonNull com.google.firebase.database.DatabaseError error) {}
                 });
     }
+
 
     @Override
     public void onDestroyView() {

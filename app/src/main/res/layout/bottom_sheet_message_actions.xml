@@ -4,7 +4,6 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <!-- Действие: Переслать -->
     <LinearLayout
         android:id="@+id/action_forward"
         android:layout_width="match_parent"
@@ -12,19 +11,47 @@
         android:orientation="horizontal"
         android:padding="16dp"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_forward" /> <!-- Иконка для пересылки, добавьте drawable если нужно -->
+            android:src="@drawable/ic_forward"
+            android:contentDescription="Переслать" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Переслать"
             android:textSize="16sp"
-            android:layout_marginStart="16dp" />
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/ubuntu_light" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/action_reply"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_reply"
+            android:contentDescription="Ответить" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Ответить"
+            android:textSize="16sp"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/ubuntu_light" />
     </LinearLayout>
 
     <LinearLayout
@@ -34,19 +61,22 @@
         android:orientation="horizontal"
         android:padding="16dp"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_edit" />
+            android:src="@drawable/ic_edit"
+            android:contentDescription="Изменить" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Изменить"
             android:textSize="16sp"
-            android:layout_marginStart="16dp" />
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/ubuntu_light" />
     </LinearLayout>
 
     <LinearLayout
@@ -56,20 +86,23 @@
         android:orientation="horizontal"
         android:padding="16dp"
         android:clickable="true"
-        android:focusable="true">
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_delete" /> <!-- Иконка для удаления, добавьте drawable если нужно -->
+            android:src="@drawable/ic_delete"
+            android:contentDescription="Удалить" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Удалить"
             android:textSize="16sp"
-            android:layout_marginStart="16dp" />
+            android:textColor="#F44336"
+            android:layout_marginStart="16dp"
+            android:fontFamily="@font/ubuntu_light" />
     </LinearLayout>
-
 
 </LinearLayout>

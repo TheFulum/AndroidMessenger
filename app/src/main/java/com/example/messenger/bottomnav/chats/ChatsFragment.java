@@ -13,6 +13,7 @@ import android.widget.EditText;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.DividerItemDecoration;
 
 import com.example.messenger.R;
 import com.example.messenger.chats.Chat;
@@ -32,6 +33,8 @@ public class ChatsFragment extends Fragment {
 
     private ChatsAdapter chatsAdapter;
     private String myUid;
+    private DatabaseReference unreadRef;
+    private ValueEventListener unreadListener;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
@@ -43,12 +46,7 @@ public class ChatsFragment extends Fragment {
         myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         chatsRv.setLayoutManager(new LinearLayoutManager(getContext()));
-
-        chatsRv.addItemDecoration(
-                new androidx.recyclerview.widget.DividerItemDecoration(
-                        getContext(), androidx.recyclerview.widget.DividerItemDecoration.VERTICAL
-                )
-        );
+        chatsRv.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
 
         chatsAdapter = new ChatsAdapter(filteredChats);
         chatsRv.setAdapter(chatsAdapter);
@@ -61,79 +59,19 @@ public class ChatsFragment extends Fragment {
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupSearch() {
-        updateClearIcon(false);
-
-        // КРИТИЧНО: TextWatcher срабатывает при КАЖДОМ изменении текста!
         searchEt.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
-                // Не используем
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int a, int b, int c) {
-                updateClearIcon(s.length() > 0);
-                // МГНОВЕННО фильтруем при КАЖДОМ символе!
-                applyFilter(s.toString());
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                // Не используем
-            }
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { applyFilter(s.toString()); }
+            @Override public void afterTextChanged(Editable s) {}
         });
 
         searchEt.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
-                if (isClearIconClicked(searchEt, event)) {
-                    searchEt.setText("");
-                    hideKeyboard();
-                    return true;
-                }
-            }
-            return false;
-        });
-
-        searchEt.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
-                hideKeyboard();
+                searchEt.setText("");
                 return true;
             }
             return false;
         });
-    }
-
-    private void updateClearIcon(boolean show) {
-        searchEt.setCompoundDrawablesWithIntrinsicBounds(
-                R.drawable.ic_search,
-                0,
-                show ? R.drawable.ic_clear : 0,
-                0
-        );
-    }
-
-    private boolean isClearIconClicked(EditText editText, MotionEvent event) {
-        if (editText.getCompoundDrawables()[2] == null) {
-            return false;
-        }
-
-        float touchX = event.getX();
-        int clearIconStart = editText.getWidth() - editText.getPaddingEnd() -
-                editText.getCompoundDrawables()[2].getIntrinsicWidth();
-
-        return touchX >= clearIconStart;
-    }
-
-    private void hideKeyboard() {
-        if (getContext() == null || searchEt == null) return;
-
-        android.view.inputmethod.InputMethodManager imm =
-                (android.view.inputmethod.InputMethodManager) getContext()
-                        .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
-
-        if (imm != null) {
-            imm.hideSoftInputFromWindow(searchEt.getWindowToken(), 0);
-        }
     }
 
     private void loadChats() {
@@ -141,21 +79,17 @@ public class ChatsFragment extends Fragment {
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-
                         chats.clear();
 
                         for (DataSnapshot chatSnap : snapshot.getChildren()) {
-
                             Chat chat = chatSnap.getValue(Chat.class);
                             if (chat == null) continue;
-
-                            if (!myUid.equals(chat.getUser1()) && !myUid.equals(chat.getUser2()))
-                                continue;
+                            if (!myUid.equals(chat.getUser1()) && !myUid.equals(chat.getUser2())) continue;
 
                             String otherUid = myUid.equals(chat.getUser1()) ? chat.getUser2() : chat.getUser1();
                             String chatId = chatSnap.getKey();
-
                             Long lastMessageTime = chatSnap.child("lastMessageTime").getValue(Long.class);
+                            Long unreadCount = chatSnap.child("unreadCount").child(myUid).getValue(Long.class);
 
                             Map<String, Object> chatData = new HashMap<>();
                             chatData.put("chatId", chatId);
@@ -163,47 +97,46 @@ public class ChatsFragment extends Fragment {
                             chatData.put("chat", chat);
                             chatData.put("lastMessageTime", lastMessageTime != null ? lastMessageTime : 0L);
                             chatData.put("username", "Loading...");
+                            chatData.put("profileImageUrl", null);
+                            chatData.put("isOnline", false);
+                            chatData.put("lastSeen", 0L);
+                            chatData.put("unreadCount", unreadCount != null ? unreadCount.intValue() : 0);
 
                             chats.add(chatData);
                         }
 
-                        // Сортируем и показываем сразу
                         sortChats();
                         applyFilter(searchEt.getText().toString());
-
-                        // Загружаем username асинхронно
                         loadUsernames();
                     }
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 
     private void loadUsernames() {
         if (chats.isEmpty()) return;
-
         FirebaseDatabase db = FirebaseDatabase.getInstance();
 
         for (Map<String, Object> chatData : chats) {
             String otherUid = (String) chatData.get("otherUid");
 
-            // Используем addValueEventListener для real-time обновлений
             db.getReference("Users").child(otherUid)
                     .addValueEventListener(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snap) {
                             String username = snap.child("username").getValue(String.class);
+                            String profileImageUrl = snap.child("profileImageUrl").getValue(String.class);
                             Boolean isOnline = snap.child("online").getValue(Boolean.class);
                             Long lastSeen = snap.child("lastSeen").getValue(Long.class);
 
                             chatData.put("username", username != null ? username : "Unknown");
+                            chatData.put("profileImageUrl", profileImageUrl);
                             chatData.put("isOnline", isOnline != null ? isOnline : false);
                             chatData.put("lastSeen", lastSeen != null ? lastSeen : 0L);
 
-                            // Обновляем после КАЖДОЙ загрузки
-                            sortChats();
-                            applyFilter(searchEt.getText().toString());
+                            int position = chats.indexOf(chatData);
+                            if (position != -1) chatsAdapter.notifyItemChanged(position);
                         }
 
                         @Override
@@ -211,8 +144,8 @@ public class ChatsFragment extends Fragment {
                             chatData.put("username", "Unknown");
                             chatData.put("isOnline", false);
                             chatData.put("lastSeen", 0L);
-                            sortChats();
-                            applyFilter(searchEt.getText().toString());
+                            int position = chats.indexOf(chatData);
+                            if (position != -1) chatsAdapter.notifyItemChanged(position);
                         }
                     });
         }
@@ -226,29 +159,18 @@ public class ChatsFragment extends Fragment {
         });
     }
 
-    /**
-     * КРИТИЧНО: Фильтрует и СРАЗУ обновляет список
-     * Регистронезависимый поиск
-     */
     private void applyFilter(String query) {
-        // Регистронезависимый поиск
         String text = query.toLowerCase(Locale.ROOT).trim();
-
         filteredChats.clear();
 
-        if (text.isEmpty()) {
-            filteredChats.addAll(chats);
-        } else {
+        if (text.isEmpty()) filteredChats.addAll(chats);
+        else {
             for (Map<String, Object> chat : chats) {
                 String username = (String) chat.get("username");
-                // Приводим username к нижнему регистру для сравнения
-                if (username != null && username.toLowerCase(Locale.ROOT).contains(text)) {
-                    filteredChats.add(chat);
-                }
+                if (username != null && username.toLowerCase(Locale.ROOT).contains(text)) filteredChats.add(chat);
             }
         }
 
-        // МГНОВЕННОЕ обновление UI!
         chatsAdapter.notifyDataSetChanged();
     }
 }

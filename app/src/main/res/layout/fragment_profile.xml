@@ -231,5 +231,28 @@
 
         </LinearLayout>
 
+        <!-- Затемнение экрана -->
+        <View
+            android:id="@+id/loader_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#161519"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <pl.droidsonroids.gif.GifImageView
+            android:id="@+id/loader"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:visibility="gone"
+            android:src="@drawable/ic_loading"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

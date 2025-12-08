@@ -74,6 +74,8 @@ public class ChatActivity extends AppCompatActivity {
     private ActivityResultLauncher<String> filePickerLauncher;
 
     private ValueEventListener userStatusListener;
+    private Message replyingToMessage = null;
+    private String replyingToOwnerName = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +108,23 @@ public class ChatActivity extends AppCompatActivity {
         setupUI();
         findAndLoadReceiverData();
         loadMessages();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        resetUnreadCount();
+    }
+
+    private void resetUnreadCount() {
+        if (chatId == null || currentUserId == null) return;
+
+        FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("unreadCount")
+                .child(currentUserId)
+                .setValue(0);
     }
 
     private void initializeCloudinary() {
@@ -390,6 +409,7 @@ public class ChatActivity extends AppCompatActivity {
                         preview = "📄 " + fileName;
                     }
                     updateLastMessage(preview, now);
+                    incrementUnreadCount();
                     binding.messageEt.setText("");
                     scrollToBottom();
                     Toast.makeText(this, "Файл отправлен", Toast.LENGTH_SHORT).show();
@@ -405,38 +425,21 @@ public class ChatActivity extends AppCompatActivity {
         binding.sendMessageBtn.setAlpha((hasText && !isUploading) ? 1.0f : 0.5f);
     }
 
-    private void sendMessage() {
-        String text = binding.messageEt.getText().toString().trim();
-        if (text.isEmpty()) return;
+    // Добавьте этот метод
+    private void incrementUnreadCount() {
+        if (receiverId == null) return;
 
-        binding.sendMessageBtn.setEnabled(false);
-
-        long now = System.currentTimeMillis();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
-
-        HashMap<String, Object> msg = new HashMap<>();
-        msg.put("text", text);
-        msg.put("ownerId", currentUserId);
-        msg.put("date", dateFormat.format(new Date()));
-        msg.put("timestamp", now);
-
-        DatabaseReference msgRef = FirebaseDatabase.getInstance()
+        DatabaseReference unreadRef = FirebaseDatabase.getInstance()
                 .getReference("Chats")
                 .child(chatId)
-                .child("messages")
-                .push();
+                .child("unreadCount")
+                .child(receiverId);
 
-        msgRef.setValue(msg)
-                .addOnSuccessListener(aVoid -> {
-                    updateLastMessage(text, now);
-                    binding.messageEt.setText("");
-                    updateSendButtonState();
-                    scrollToBottom();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
-                    binding.sendMessageBtn.setEnabled(true);
-                });
+        unreadRef.get().addOnSuccessListener(snapshot -> {
+            Long currentCount = snapshot.getValue(Long.class);
+            int newCount = (currentCount != null ? currentCount.intValue() : 0) + 1;
+            unreadRef.setValue(newCount);
+        });
     }
 
     private void scrollToBottom() {
@@ -570,6 +573,7 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 
+
     private String getTimeAgo(long timestamp) {
         long now = System.currentTimeMillis();
         long diff = now - timestamp;
@@ -624,14 +628,20 @@ public class ChatActivity extends AppCompatActivity {
                     String fileName = msgSnapshot.child("fileName").getValue(String.class);
                     Long fileSize = msgSnapshot.child("fileSize").getValue(Long.class);
                     Long voiceDuration = msgSnapshot.child("voiceDuration").getValue(Long.class);
-                    Long videoDuration = msgSnapshot.child("videoDuration").getValue(Long.class); // ДОБАВИЛИ
+                    Long videoDuration = msgSnapshot.child("videoDuration").getValue(Long.class);
 
-                    // ЗАГРУЖАЕМ ДАННЫЕ О ПЕРЕСЫЛКЕ
+                    // Данные о пересылке
                     Boolean isForwarded = msgSnapshot.child("isForwarded").getValue(Boolean.class);
                     String forwardedFrom = msgSnapshot.child("forwardedFrom").getValue(String.class);
 
-                    // Новое: ЗАГРУЖАЕМ ДАННЫЕ О РЕДАКТИРОВАНИИ
+                    // Данные о редактировании
                     Boolean isEdited = msgSnapshot.child("isEdited").getValue(Boolean.class);
+
+                    // НОВОЕ: Данные об ответе
+                    String replyToMessageId = msgSnapshot.child("replyToMessageId").getValue(String.class);
+                    String replyToText = msgSnapshot.child("replyToText").getValue(String.class);
+                    String replyToOwnerName = msgSnapshot.child("replyToOwnerName").getValue(String.class);
+                    String replyToFileType = msgSnapshot.child("replyToFileType").getValue(String.class);
 
                     if (ownerId != null) {
                         Message message = new Message(
@@ -645,10 +655,10 @@ public class ChatActivity extends AppCompatActivity {
                                 fileName,
                                 fileSize != null ? fileSize : 0L,
                                 voiceDuration != null ? voiceDuration : 0L,
-                                videoDuration != null ? videoDuration : 0L  // ДОБАВИЛИ
+                                videoDuration != null ? videoDuration : 0L
                         );
 
-                        // УСТАНАВЛИВАЕМ ДАННЫЕ О ПЕРЕСЫЛКЕ
+                        // Устанавливаем данные о пересылке
                         if (isForwarded != null && isForwarded) {
                             message.setForwarded(true);
                             if (forwardedFrom != null) {
@@ -656,8 +666,16 @@ public class ChatActivity extends AppCompatActivity {
                             }
                         }
 
-                        // УСТАНАВЛИВАЕМ ДАННЫЕ О РЕДАКТИРОВАНИИ
+                        // Устанавливаем данные о редактировании
                         message.setEdited(isEdited != null && isEdited);
+
+                        // НОВОЕ: Устанавливаем данные об ответе
+                        if (replyToMessageId != null && !replyToMessageId.isEmpty()) {
+                            message.setReplyToMessageId(replyToMessageId);
+                            message.setReplyToText(replyToText);
+                            message.setReplyToOwnerName(replyToOwnerName);
+                            message.setReplyToFileType(replyToFileType);
+                        }
 
                         messages.add(message);
                     }
@@ -929,6 +947,7 @@ public class ChatActivity extends AppCompatActivity {
         msgRef.setValue(msg)
                 .addOnSuccessListener(aVoid -> {
                     updateLastMessage("🎤 Голосовое сообщение", now);
+                    incrementUnreadCount();
                     scrollToBottom();
                     Toast.makeText(this, "Голосовое сообщение отправлено", Toast.LENGTH_SHORT).show();
                 })
@@ -948,6 +967,108 @@ public class ChatActivity extends AppCompatActivity {
             e.printStackTrace();
             return 0;
         }
+    }
+
+    public void showReplyBlock(Message message, String ownerName) {
+        replyingToMessage = message;
+        replyingToOwnerName = ownerName;
+
+        binding.replyContainer.setVisibility(View.VISIBLE);
+        binding.replyOwnerNameTv.setText(ownerName);
+
+        // Определяем текст для отображения
+        String displayText;
+        if (message.hasFile()) {
+            if (message.isImage()) {
+                displayText = "📷 Фото";
+            } else if (message.isVideo()) {
+                displayText = "🎥 Видео";
+            } else if (message.isVoice()) {
+                displayText = "🎤 Голосовое сообщение";
+            } else {
+                displayText = "📄 " + message.getFileName();
+            }
+        } else {
+            displayText = message.getText();
+        }
+
+        binding.replyTextTv.setText(displayText);
+
+        // Фокус на поле ввода
+        binding.messageEt.requestFocus();
+    }
+
+    // Отменить ответ
+    private void cancelReply() {
+        replyingToMessage = null;
+        replyingToOwnerName = null;
+        binding.replyContainer.setVisibility(View.GONE);
+    }
+
+    // Обновленный метод sendMessage с поддержкой ответов
+    private void sendMessage() {
+        String text = binding.messageEt.getText().toString().trim();
+        if (text.isEmpty()) return;
+
+        binding.sendMessageBtn.setEnabled(false);
+
+        long now = System.currentTimeMillis();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+
+        HashMap<String, Object> msg = new HashMap<>();
+        msg.put("text", text);
+        msg.put("ownerId", currentUserId);
+        msg.put("date", dateFormat.format(new Date()));
+        msg.put("timestamp", now);
+
+        // НОВОЕ: Добавляем данные об ответе
+        if (replyingToMessage != null) {
+            msg.put("replyToMessageId", replyingToMessage.getId());
+            msg.put("replyToOwnerName", replyingToOwnerName);
+
+            // Сохраняем текст или тип файла
+            if (replyingToMessage.hasFile()) {
+                msg.put("replyToFileType", replyingToMessage.getFileType());
+                if (replyingToMessage.isDocument()) {
+                    msg.put("replyToText", replyingToMessage.getFileName());
+                } else {
+                    msg.put("replyToText", "");
+                }
+            } else {
+                msg.put("replyToText", replyingToMessage.getText());
+            }
+        }
+
+        DatabaseReference msgRef = FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("messages")
+                .push();
+
+        msgRef.setValue(msg)
+                .addOnSuccessListener(aVoid -> {
+                    updateLastMessage(text, now);
+                    incrementUnreadCount();
+                    binding.messageEt.setText("");
+                    updateSendButtonState();
+                    cancelReply();  // Закрываем блок ответа
+                    scrollToBottom();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
+                    binding.sendMessageBtn.setEnabled(true);
+                });
+    }
+    public void scrollToMessage(int position) {
+        if (binding == null || binding.messagesRv == null) return;
+
+        // Плавная прокрутка
+        binding.messagesRv.smoothScrollToPosition(position);
+
+        // Скрываем кнопку "вниз"
+        binding.scrollToBottomFab.setVisibility(View.GONE);
+
+        isAtBottom = true;
     }
 
 }

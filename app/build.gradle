@@ -66,4 +66,7 @@ dependencies {
 
     implementation libs.photoview
 
+    implementation libs.lifecycle.process
+
+    implementation libs.exoplayer
 }

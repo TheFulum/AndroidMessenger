@@ -2,37 +2,41 @@ package com.example.messenger;
 
 import android.app.DownloadManager;
 import android.content.Context;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.SeekBar;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.messenger.databinding.ActivityMediaViewerBinding;
+import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.PlaybackException;
+import com.google.android.exoplayer2.Player;
+import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.ProgressiveMediaSource;
+import com.google.android.exoplayer2.upstream.DefaultDataSource;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource;
+import com.google.android.exoplayer2.util.Util;
 
 public class MediaViewerActivity extends AppCompatActivity {
 
     private static final String TAG = "MediaViewerActivity";
-    private static final int VIDEO_LOAD_TIMEOUT = 30000; // 30 секунд
 
     private ActivityMediaViewerBinding binding;
     private String mediaUrl;
     private String mediaType; // "image" или "video"
     private String title;
 
-    private Handler videoHandler;
-    private Runnable videoRunnable;
-    private Runnable timeoutRunnable;
-    private boolean isPlaying = false;
+    private ExoPlayer player;
+    private boolean playWhenReady = true;
+    private int currentWindow = 0;
+    private long playbackPosition = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,7 +81,8 @@ public class MediaViewerActivity extends AppCompatActivity {
 
         // Клик по экрану для скрытия/показа панелей
         binding.photoView.setOnClickListener(v -> toggleBars());
-        binding.videoView.setOnClickListener(v -> toggleBars());
+
+        // Для ExoPlayer управление панелями встроено
     }
 
     private void loadMedia() {
@@ -105,141 +110,112 @@ public class MediaViewerActivity extends AppCompatActivity {
 
     private void loadVideo() {
         binding.loadingProgress.setVisibility(View.VISIBLE);
+        binding.playerView.setVisibility(View.VISIBLE);
 
-        Log.d(TAG, "Setting video URI: " + mediaUrl);
-        binding.videoView.setVideoURI(Uri.parse(mediaUrl));
+        Log.d(TAG, "Initializing ExoPlayer for URL: " + mediaUrl);
 
-        binding.videoView.setOnErrorListener((mp, what, extra) -> {
-            String errorMsg = "Ошибка загрузки видео - What: " + what + ", Extra: " + extra;
-            Log.e(TAG, errorMsg);
-            Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
+        try {
+            initializePlayer();
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing player", e);
             binding.loadingProgress.setVisibility(View.GONE);
-            return true;
-        });
-
-        binding.videoView.setOnPreparedListener(mp -> {
-            Log.d(TAG, "Video prepared successfully");
-            binding.loadingProgress.setVisibility(View.GONE);
-            binding.videoView.setVisibility(View.VISIBLE);
-            binding.playBtn.setVisibility(View.VISIBLE);
-            binding.videoControls.setVisibility(View.VISIBLE);
-
-            // Устанавливаем длительность
-            int duration = binding.videoView.getDuration();
-            binding.videoSeekbar.setMax(duration);
-            binding.totalTimeTv.setText(formatTime(duration));
-            binding.currentTimeTv.setText(formatTime(0));
-
-            Log.d(TAG, "Video duration: " + duration + "ms");
-        });
-
-        // Кнопка Play/Pause
-        binding.playBtn.setOnClickListener(v -> {
-            if (isPlaying) {
-                pauseVideo();
-            } else {
-                playVideo();
-            }
-        });
-
-        // SeekBar
-        binding.videoSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    binding.videoView.seekTo(progress);
-                    binding.currentTimeTv.setText(formatTime(progress));
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        binding.videoView.setOnCompletionListener(mp -> {
-            Log.d(TAG, "Video completed");
-            isPlaying = false;
-            binding.playBtn.setImageResource(R.drawable.ic_play);
-            binding.playBtn.setVisibility(View.VISIBLE);
-            stopVideoProgressUpdater();
-        });
-    }
-
-    private void playVideo() {
-        Log.d(TAG, "Playing video");
-        binding.videoView.start();
-        isPlaying = true;
-        binding.playBtn.setImageResource(R.drawable.ic_pause);
-        binding.playBtn.setVisibility(View.GONE);
-        startVideoProgressUpdater();
-    }
-
-    private void pauseVideo() {
-        Log.d(TAG, "Pausing video");
-        binding.videoView.pause();
-        isPlaying = false;
-        binding.playBtn.setImageResource(R.drawable.ic_play);
-        binding.playBtn.setVisibility(View.VISIBLE);
-        stopVideoProgressUpdater();
-    }
-
-    private void startVideoProgressUpdater() {
-        if (videoHandler != null && videoRunnable != null) {
-            videoHandler.removeCallbacks(videoRunnable);
-        }
-
-        videoHandler = new Handler(Looper.getMainLooper());
-        videoRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (isPlaying && binding != null && binding.videoView != null) {
-                    try {
-                        int currentPosition = binding.videoView.getCurrentPosition();
-                        binding.videoSeekbar.setProgress(currentPosition);
-                        binding.currentTimeTv.setText(formatTime(currentPosition));
-                        videoHandler.postDelayed(this, 100);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error updating progress", e);
-                    }
-                }
-            }
-        };
-        videoHandler.post(videoRunnable);
-    }
-
-    private void stopVideoProgressUpdater() {
-        if (videoHandler != null && videoRunnable != null) {
-            videoHandler.removeCallbacks(videoRunnable);
+            Toast.makeText(this, "Ошибка загрузки видео: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
-    private String formatTime(int milliseconds) {
-        int seconds = milliseconds / 1000;
-        int minutes = seconds / 60;
-        seconds = seconds % 60;
-        return String.format("%d:%02d", minutes, seconds);
+    private void initializePlayer() {
+        if (player != null) {
+            return;
+        }
+
+        // Создаем ExoPlayer
+        player = new ExoPlayer.Builder(this).build();
+
+        // Привязываем к UI
+        binding.playerView.setPlayer(player);
+
+        // Настраиваем источник данных с правильными заголовками
+        DefaultHttpDataSource.Factory httpDataSourceFactory =
+                new DefaultHttpDataSource.Factory()
+                        .setUserAgent(Util.getUserAgent(this, "MessengerApp"))
+                        .setAllowCrossProtocolRedirects(true);
+
+        DefaultDataSource.Factory dataSourceFactory =
+                new DefaultDataSource.Factory(this, httpDataSourceFactory);
+
+        // Создаем MediaSource
+        MediaItem mediaItem = MediaItem.fromUri(Uri.parse(mediaUrl));
+        MediaSource mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(mediaItem);
+
+        // Настраиваем плеер
+        player.setMediaSource(mediaSource);
+        player.setPlayWhenReady(playWhenReady);
+        player.seekTo(currentWindow, playbackPosition);
+
+        // Добавляем слушатели
+        player.addListener(new Player.Listener() {
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                String stateString;
+                switch (playbackState) {
+                    case ExoPlayer.STATE_IDLE:
+                        stateString = "IDLE";
+                        break;
+                    case ExoPlayer.STATE_BUFFERING:
+                        stateString = "BUFFERING";
+                        binding.loadingProgress.setVisibility(View.VISIBLE);
+                        break;
+                    case ExoPlayer.STATE_READY:
+                        stateString = "READY";
+                        binding.loadingProgress.setVisibility(View.GONE);
+                        break;
+                    case ExoPlayer.STATE_ENDED:
+                        stateString = "ENDED";
+                        binding.loadingProgress.setVisibility(View.GONE);
+                        break;
+                    default:
+                        stateString = "UNKNOWN";
+                        break;
+                }
+                Log.d(TAG, "Playback state changed to: " + stateString);
+            }
+
+            @Override
+            public void onPlayerError(PlaybackException error) {
+                Log.e(TAG, "Player error: " + error.getMessage(), error);
+                binding.loadingProgress.setVisibility(View.GONE);
+
+                String errorMessage = "Ошибка воспроизведения";
+                if (error.getMessage() != null) {
+                    errorMessage += ": " + error.getMessage();
+                }
+
+                Toast.makeText(MediaViewerActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onIsPlayingChanged(boolean isPlaying) {
+                Log.d(TAG, "Is playing: " + isPlaying);
+            }
+        });
+
+        // Начинаем подготовку
+        player.prepare();
+
+        Log.d(TAG, "Player initialized and preparing media");
     }
 
     private void toggleBars() {
         if (binding.topBar.getVisibility() == View.VISIBLE) {
             binding.topBar.setVisibility(View.GONE);
-            if (mediaType.equals("video")) {
-                binding.videoControls.setVisibility(View.GONE);
-            }
         } else {
             binding.topBar.setVisibility(View.VISIBLE);
-            if (mediaType.equals("video")) {
-                binding.videoControls.setVisibility(View.VISIBLE);
-            }
         }
     }
 
     private void downloadMedia() {
         try {
-            // Получаем имя файла из URL или создаем новое
             String fileName;
             if (mediaType.equals("image")) {
                 fileName = "image_" + System.currentTimeMillis() + ".jpg";
@@ -251,7 +227,7 @@ public class MediaViewerActivity extends AppCompatActivity {
 
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mediaUrl));
             request.setTitle(fileName);
-            request.setDescription("Downloading file...");
+            request.setDescription("Скачивание файла...");
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
 
@@ -266,27 +242,54 @@ public class MediaViewerActivity extends AppCompatActivity {
         }
     }
 
+    private void releasePlayer() {
+        if (player != null) {
+            playWhenReady = player.getPlayWhenReady();
+            playbackPosition = player.getCurrentPosition();
+            currentWindow = player.getCurrentMediaItemIndex();
+            player.release();
+            player = null;
+        }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (Util.SDK_INT > 23 && mediaType.equals("video")) {
+            if (player == null) {
+                initializePlayer();
+            }
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if ((Util.SDK_INT <= 23 || player == null) && mediaType.equals("video")) {
+            initializePlayer();
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
-        if (isPlaying && binding != null && binding.videoView != null) {
-            pauseVideo();
+        if (Util.SDK_INT <= 23) {
+            releasePlayer();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (Util.SDK_INT > 23) {
+            releasePlayer();
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        stopVideoProgressUpdater();
-
-        // Отменяем таймаут
-        if (videoHandler != null && timeoutRunnable != null) {
-            videoHandler.removeCallbacks(timeoutRunnable);
-        }
-
-        if (binding != null && binding.videoView != null) {
-            binding.videoView.stopPlayback();
-        }
+        releasePlayer();
         binding = null;
     }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="end"
@@ -26,9 +27,60 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
         android:layout_marginEnd="12dp"
+        android:minWidth="200dp"
         android:background="@drawable/msg_bubble_me"
         android:orientation="vertical"
         android:padding="12dp">
+
+        <!-- НОВОЕ: Блок ответа -->
+        <LinearLayout
+            android:id="@+id/reply_block"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:background="#33FFFFFF"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <View
+                android:layout_width="3dp"
+                android:layout_height="match_parent"
+                android:background="@android:color/white" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/reply_owner_name_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/ubuntu_light"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="Username" />
+
+                <TextView
+                    android:id="@+id/reply_text_tv"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/ubuntu_light"
+                    android:maxLines="1"
+                    android:textColor="#CCCCCC"
+                    android:textSize="12sp"
+                    tools:text="Исходное сообщение" />
+
+            </LinearLayout>
+
+        </LinearLayout>
 
         <TextView
             android:id="@+id/message_tv"
@@ -56,6 +108,7 @@
             android:text="изменено"
             android:textSize="12sp"
             android:textColor="#D6D6D6"
+            android:fontFamily="@font/ubuntu_light"
             android:visibility="gone" />
 
         <TextView
@@ -63,6 +116,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
+            android:fontFamily="@font/ubuntu_light"
             android:textColor="#D6D6D6"
             android:textSize="12sp" />
 

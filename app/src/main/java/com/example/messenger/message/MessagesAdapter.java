@@ -25,6 +25,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.messenger.ChatActivity;
 import com.example.messenger.MediaViewerActivity;
 import com.example.messenger.R;
 import com.example.messenger.SelectChatActivity;
@@ -49,6 +50,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private static final int TYPE_VOICE_OTHER = 7;
     private static final int TYPE_VIDEO_MY = 8;
     private static final int TYPE_VIDEO_OTHER = 9;
+    private Context context;
 
     private List<Message> messages;
     private String chatId;
@@ -149,6 +151,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     private void bindTextMessage(TextMessageViewHolder holder, Message message, boolean isMyMessage) {
+        // Пересылка
         if (message.isForwarded() && message.getForwardedFrom() != null) {
             holder.forwardedTv.setVisibility(View.VISIBLE);
             holder.forwardedTv.setText("📩 Forwarded from " + message.getForwardedFrom());
@@ -156,10 +159,43 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             holder.forwardedTv.setVisibility(View.GONE);
         }
 
+        // НОВОЕ: Ответ
+        if (message.isReply()) {
+            holder.replyBlock.setVisibility(View.VISIBLE);
+            holder.replyOwnerNameTv.setText(message.getReplyToOwnerName());
+
+            // Определяем текст для отображения
+            String replyDisplayText;
+            if (message.getReplyToFileType() != null && !message.getReplyToFileType().isEmpty()) {
+                switch (message.getReplyToFileType()) {
+                    case "image":
+                        replyDisplayText = "📷 Фото";
+                        break;
+                    case "video":
+                        replyDisplayText = "🎥 Видео";
+                        break;
+                    case "voice":
+                        replyDisplayText = "🎤 Голосовое сообщение";
+                        break;
+                    default:
+                        replyDisplayText = "📄 " + message.getReplyToText();
+                        break;
+                }
+            } else {
+                replyDisplayText = message.getReplyToText();
+            }
+
+            holder.replyTextTv.setText(replyDisplayText);
+
+            holder.replyBlock.setOnClickListener(v -> onReplyClick(v.getContext(), message));
+        } else {
+            holder.replyBlock.setVisibility(View.GONE);
+        }
+
         holder.messageTv.setText(cleanForwardedText(message.getText()));
         holder.dateTv.setText(message.getDate());
 
-        // Новое: Показываем метку "изменено"
+        // Метка "изменено"
         holder.editedTv.setVisibility(message.isEdited() ? View.VISIBLE : View.GONE);
 
         holder.itemView.setOnLongClickListener(v -> {
@@ -444,9 +480,16 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         View sheetView = LayoutInflater.from(view.getContext())
                 .inflate(R.layout.bottom_sheet_message_actions, null);
 
+        LinearLayout actionReply = sheetView.findViewById(R.id.action_reply);      // НОВОЕ
         LinearLayout actionForward = sheetView.findViewById(R.id.action_forward);
         LinearLayout actionDelete = sheetView.findViewById(R.id.action_delete);
-        LinearLayout actionEdit = sheetView.findViewById(R.id.action_edit);  // Новое
+        LinearLayout actionEdit = sheetView.findViewById(R.id.action_edit);
+
+        // НОВОЕ: Обработчик для ответа (всегда показываем)
+        actionReply.setOnClickListener(v -> {
+            bottomSheet.dismiss();
+            handleReply(view, message);
+        });
 
         actionForward.setOnClickListener(v -> {
             bottomSheet.dismiss();
@@ -463,7 +506,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             actionDelete.setVisibility(View.GONE);
         }
 
-        // Новое: Показываем "Изменить" только для своих текстовых сообщений без файлов
+        // Показываем "Изменить" только для своих текстовых сообщений без файлов
         if (isMyMessage && !message.hasFile() && message.getText() != null && !message.getText().isEmpty()) {
             actionEdit.setVisibility(View.VISIBLE);
             actionEdit.setOnClickListener(v -> {
@@ -478,7 +521,6 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         bottomSheet.show();
     }
 
-    // Новое: Диалог для редактирования текста
     private void showEditDialog(Context context, Message message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("Изменить сообщение");
@@ -604,16 +646,23 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         }
     }
 
-    // ViewHolders
     static class TextMessageViewHolder extends RecyclerView.ViewHolder {
-        TextView messageTv, dateTv, forwardedTv, editedTv;  // Новое: editedTv
+        TextView messageTv, dateTv, forwardedTv, editedTv;
+        // НОВОЕ: Элементы блока ответа
+        LinearLayout replyBlock;
+        TextView replyOwnerNameTv, replyTextTv;
 
         TextMessageViewHolder(@NonNull View itemView) {
             super(itemView);
             messageTv = itemView.findViewById(R.id.message_tv);
             dateTv = itemView.findViewById(R.id.message_date_tv);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
-            editedTv = itemView.findViewById(R.id.edited_tv);  // Новое
+            editedTv = itemView.findViewById(R.id.edited_tv);
+
+            // НОВОЕ
+            replyBlock = itemView.findViewById(R.id.reply_block);
+            replyOwnerNameTv = itemView.findViewById(R.id.reply_owner_name_tv);
+            replyTextTv = itemView.findViewById(R.id.reply_text_tv);
         }
     }
 
@@ -677,4 +726,47 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
         }
     }
+    private void handleReply(View view, Message message) {
+        // Получаем имя отправителя
+        String ownerId = message.getOwnerId();
+
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(ownerId)
+                .child("username")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    String ownerName = snapshot.getValue(String.class);
+                    if (ownerName == null) {
+                        ownerName = "Пользователь";
+                    }
+
+                    // Вызываем метод в ChatActivity
+                    if (view.getContext() instanceof ChatActivity) {
+                        ((ChatActivity) view.getContext()).showReplyBlock(message, ownerName);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(view.getContext(), "Ошибка загрузки данных", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void onReplyClick(Context ctx, Message message) {
+        if (!message.isReply()) return;
+
+        Toast.makeText(ctx, "Переход к сообщению", Toast.LENGTH_SHORT).show();
+
+        // Ищем исходное сообщение
+        for (int i = 0; i < messages.size(); i++) {
+            if (messages.get(i).getId().equals(message.getReplyToMessageId())) {
+
+                // ChatActivity умеет скроллить
+                if (ctx instanceof ChatActivity) {
+                    ((ChatActivity) ctx).scrollToMessage(i);
+                }
+                break;
+            }
+        }
+    }
+
 }

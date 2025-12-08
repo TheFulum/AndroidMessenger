@@ -22,8 +22,12 @@ import com.example.messenger.databinding.ActivityMainBinding;
 import com.example.messenger.notifications.MessageListenerService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                 : null;
 
         if (currentUserId != null) {
-            setUserOnline();
+            setupPresence();
         }
 
         initFragments();
@@ -76,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         setupBottomNavigation();
         setupCheckTimer();
     }
+
 
     private boolean checkAuthentication() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -191,44 +196,40 @@ public class MainActivity extends AppCompatActivity {
                 .updateChildren(status);
     }
 
-    // 🔥 Проверка disabled аккаунта
     private void checkIfDisabled() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
+        if (currentUserId == null) return;
 
-        user.getIdToken(true)
-                .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this, "Your account has been banned", Toast.LENGTH_LONG).show();
-                    FirebaseAuth.getInstance().signOut();
-                    navigateToLogin();
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(currentUserId)
+                .child("isDisabled")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        Boolean disabled = snapshot.getValue(Boolean.class);
+                        if (disabled != null && disabled) {
+                            Toast.makeText(MainActivity.this, "Your account has been banned", Toast.LENGTH_LONG).show();
+                            FirebaseAuth.getInstance().signOut();
+                            navigateToLogin();
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                    }
                 });
     }
+
 
     private void setupCheckTimer() {
         checkRunnable = new Runnable() {
             @Override
             public void run() {
                 checkIfDisabled();
-                handler.postDelayed(this, 15000); // каждые 15 секунд
+                handler.postDelayed(this, 15000);
             }
         };
         handler.post(checkRunnable);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        checkAuthentication();
-        checkIfDisabled();
-
-        if (currentUserId != null) setUserOnline();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        if (currentUserId != null) setUserOffline();
     }
 
     @Override
@@ -239,9 +240,33 @@ public class MainActivity extends AppCompatActivity {
             FirebaseAuth.getInstance().removeAuthStateListener(authStateListener);
         }
 
-        if (currentUserId != null) setUserOffline();
-
         handler.removeCallbacks(checkRunnable);
         binding = null;
+    }
+
+    private void setupPresence() {
+        if (currentUserId == null) return;
+
+        DatabaseReference userRef = FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(currentUserId);
+
+        DatabaseReference connectedRef = FirebaseDatabase.getInstance()
+                .getReference(".info/connected");
+
+        connectedRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Boolean connected = snapshot.getValue(Boolean.class);
+                if (connected != null && connected) {
+                    userRef.child("online").setValue(true);
+                    userRef.child("online").onDisconnect().setValue(false);
+                    userRef.child("lastSeen").onDisconnect().setValue(ServerValue.TIMESTAMP);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 }

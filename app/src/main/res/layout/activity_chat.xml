@@ -40,7 +40,6 @@
             app:layout_constraintStart_toEndOf="@id/back_btn"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Информация о пользователе -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -52,7 +51,6 @@
             app:layout_constraintStart_toEndOf="@id/chat_profile_image"
             app:layout_constraintTop_toTopOf="parent">
 
-            <!-- Имя пользователя -->
             <TextView
                 android:id="@+id/chat_username_tv"
                 android:layout_width="wrap_content"
@@ -65,7 +63,6 @@
                 android:textStyle="bold"
                 tools:text="Username" />
 
-            <!-- Статус (В сети / Был в сети) -->
             <TextView
                 android:id="@+id/chat_status_tv"
                 android:layout_width="wrap_content"
@@ -123,8 +120,8 @@
         android:visibility="gone"
         android:background="?android:colorBackground"
         android:elevation="8dp"
-        app:layout_constraintBottom_toTopOf="@id/message_input_container"
-        tools:visibility="visible">
+        app:layout_constraintBottom_toTopOf="@id/reply_container"
+        tools:visibility="gone">
 
         <TextView
             android:id="@+id/upload_file_name_tv"
@@ -152,6 +149,73 @@
             android:textSize="12sp"
             android:textColor="?android:textColorSecondary"
             tools:text="Загрузка... 50%" />
+
+    </LinearLayout>
+
+    <!-- НОВОЕ: Блок ответа на сообщение -->
+    <LinearLayout
+        android:id="@+id/reply_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:colorBackground"
+        android:elevation="8dp"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/message_input_container"
+        tools:visibility="visible">
+
+        <!-- Вертикальная линия слева -->
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@color/blue" />
+
+        <!-- Контент ответа -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Имя отправителя -->
+            <TextView
+                android:id="@+id/reply_owner_name_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/ubuntu_light"
+                android:textColor="@color/blue"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="Username" />
+
+            <!-- Текст сообщения -->
+            <TextView
+                android:id="@+id/reply_text_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/ubuntu_light"
+                android:maxLines="2"
+                android:textColor="?android:textColorSecondary"
+                android:textSize="14sp"
+                tools:text="Это текст исходного сообщения на которое отвечаем" />
+
+        </LinearLayout>
+
+        <!-- Кнопка закрыть -->
+        <ImageButton
+            android:id="@+id/close_reply_btn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cancel"
+            android:src="@drawable/ic_close"
+            app:tint="?android:textColorSecondary" />
 
     </LinearLayout>
 
@@ -193,7 +257,6 @@
             android:textColorHint="?android:textColorSecondary"
             android:textSize="16sp" />
 
-        <!-- Кнопка микрофона (по умолчанию видима) -->
         <ImageButton
             android:id="@+id/voice_record_btn"
             android:layout_width="48dp"
@@ -205,7 +268,6 @@
             android:src="@drawable/ic_mic"
             app:tint="?android:textColorSecondary" />
 
-        <!-- Кнопка отправки (скрыта, пока нет текста) -->
         <ImageButton
             android:id="@+id/send_message_btn"
             android:layout_width="48dp"
@@ -231,7 +293,7 @@
         android:padding="16dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
-        tools:visibility="visible">
+        tools:visibility="gone">
 
         <ImageView
             android:id="@+id/recording_icon"

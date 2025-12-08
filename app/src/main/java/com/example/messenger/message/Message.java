@@ -5,22 +5,28 @@ public class Message {
     private String id, ownerId, text, date;
     private long timestamp;
 
-    // Новые поля для файлов
-    private String fileUrl;        // URL файла в Cloudinary
-    private String fileType;       // "image", "document", "video", "audio", "voice"
-    private String fileName;       // Имя файла
-    private long fileSize;         // Размер в байтах
-    private long voiceDuration;    // Длительность голосового в миллисекундах
-    private long videoDuration;    // Длительность видео в миллисекундах
+    // Поля для файлов
+    private String fileUrl;
+    private String fileType;
+    private String fileName;
+    private long fileSize;
+    private long voiceDuration;
+    private long videoDuration;
 
     // Пересылка
     private boolean isForwarded;
     private String forwardedFrom;
 
-    // Новое поле для редактирования
+    // Редактирование
     private boolean isEdited;
 
-    public Message() {} // обязательно для Firebase
+    // НОВОЕ: Ответ на сообщение
+    private String replyToMessageId;      // ID сообщения, на которое отвечаем
+    private String replyToText;           // Текст исходного сообщения
+    private String replyToOwnerName;      // Имя отправителя исходного сообщения
+    private String replyToFileType;       // Тип файла (если в исходном был файл)
+
+    public Message() {}
 
     public Message(String id, String ownerId, String text, String date, long timestamp) {
         this.id = id;
@@ -28,10 +34,9 @@ public class Message {
         this.text = text;
         this.date = date;
         this.timestamp = timestamp;
-        this.isEdited = false;  // По умолчанию false
+        this.isEdited = false;
     }
 
-    // Конструктор для сообщений с файлами
     public Message(String id, String ownerId, String text, String date, long timestamp,
                    String fileUrl, String fileType, String fileName, long fileSize,
                    long voiceDuration, long videoDuration) {
@@ -46,7 +51,7 @@ public class Message {
         this.fileSize = fileSize;
         this.voiceDuration = voiceDuration;
         this.videoDuration = videoDuration;
-        this.isEdited = false;  // По умолчанию false
+        this.isEdited = false;
     }
 
     // Getters и Setters
@@ -91,6 +96,24 @@ public class Message {
 
     public boolean isEdited() { return isEdited; }
     public void setEdited(boolean edited) { isEdited = edited; }
+
+    // НОВОЕ: Getters и Setters для ответов
+    public String getReplyToMessageId() { return replyToMessageId; }
+    public void setReplyToMessageId(String replyToMessageId) { this.replyToMessageId = replyToMessageId; }
+
+    public String getReplyToText() { return replyToText; }
+    public void setReplyToText(String replyToText) { this.replyToText = replyToText; }
+
+    public String getReplyToOwnerName() { return replyToOwnerName; }
+    public void setReplyToOwnerName(String replyToOwnerName) { this.replyToOwnerName = replyToOwnerName; }
+
+    public String getReplyToFileType() { return replyToFileType; }
+    public void setReplyToFileType(String replyToFileType) { this.replyToFileType = replyToFileType; }
+
+    // НОВОЕ: Проверка, является ли сообщение ответом
+    public boolean isReply() {
+        return replyToMessageId != null && !replyToMessageId.isEmpty();
+    }
 
     // Вспомогательные методы
     public boolean hasFile() {
