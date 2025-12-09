@@ -23,6 +23,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextWatcher;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -32,6 +35,7 @@ import com.cloudinary.android.callback.UploadCallback;
 import com.example.messenger.databinding.ActivityChatBinding;
 import com.example.messenger.message.Message;
 import com.example.messenger.message.MessagesAdapter;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -106,6 +110,7 @@ public class ChatActivity extends AppCompatActivity {
 
         initializeCloudinary();
         setupUI();
+        setupChatMenu();
         findAndLoadReceiverData();
         loadMessages();
     }
@@ -114,6 +119,7 @@ public class ChatActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         resetUnreadCount();
+        markMessagesAsRead();
     }
 
     private void resetUnreadCount() {
@@ -630,18 +636,17 @@ public class ChatActivity extends AppCompatActivity {
                     Long voiceDuration = msgSnapshot.child("voiceDuration").getValue(Long.class);
                     Long videoDuration = msgSnapshot.child("videoDuration").getValue(Long.class);
 
-                    // Данные о пересылке
                     Boolean isForwarded = msgSnapshot.child("isForwarded").getValue(Boolean.class);
                     String forwardedFrom = msgSnapshot.child("forwardedFrom").getValue(String.class);
-
-                    // Данные о редактировании
                     Boolean isEdited = msgSnapshot.child("isEdited").getValue(Boolean.class);
 
-                    // НОВОЕ: Данные об ответе
                     String replyToMessageId = msgSnapshot.child("replyToMessageId").getValue(String.class);
                     String replyToText = msgSnapshot.child("replyToText").getValue(String.class);
                     String replyToOwnerName = msgSnapshot.child("replyToOwnerName").getValue(String.class);
                     String replyToFileType = msgSnapshot.child("replyToFileType").getValue(String.class);
+
+                    // НОВОЕ: Загружаем статус прочитанности
+                    Boolean read = msgSnapshot.child("read").getValue(Boolean.class);
 
                     if (ownerId != null) {
                         Message message = new Message(
@@ -658,7 +663,6 @@ public class ChatActivity extends AppCompatActivity {
                                 videoDuration != null ? videoDuration : 0L
                         );
 
-                        // Устанавливаем данные о пересылке
                         if (isForwarded != null && isForwarded) {
                             message.setForwarded(true);
                             if (forwardedFrom != null) {
@@ -666,10 +670,8 @@ public class ChatActivity extends AppCompatActivity {
                             }
                         }
 
-                        // Устанавливаем данные о редактировании
                         message.setEdited(isEdited != null && isEdited);
 
-                        // НОВОЕ: Устанавливаем данные об ответе
                         if (replyToMessageId != null && !replyToMessageId.isEmpty()) {
                             message.setReplyToMessageId(replyToMessageId);
                             message.setReplyToText(replyToText);
@@ -677,11 +679,17 @@ public class ChatActivity extends AppCompatActivity {
                             message.setReplyToFileType(replyToFileType);
                         }
 
+                        // НОВОЕ: Устанавливаем статус прочитанности
+                        message.setRead(read != null && read);
+
                         messages.add(message);
                     }
                 }
 
                 setupRecyclerView(messages);
+
+                // Отмечаем сообщения как прочитанные при открытии чата
+                markMessagesAsRead();
             }
 
             @Override
@@ -1059,6 +1067,7 @@ public class ChatActivity extends AppCompatActivity {
                     binding.sendMessageBtn.setEnabled(true);
                 });
     }
+
     public void scrollToMessage(int position) {
         if (binding == null || binding.messagesRv == null) return;
 
@@ -1070,5 +1079,167 @@ public class ChatActivity extends AppCompatActivity {
 
         isAtBottom = true;
     }
+    private void markMessagesAsRead() {
+        if (chatId == null || currentUserId == null) return;
 
+        DatabaseReference messagesRef = FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("messages");
+
+        messagesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (DataSnapshot msgSnapshot : snapshot.getChildren()) {
+                    String ownerId = msgSnapshot.child("ownerId").getValue(String.class);
+                    Boolean isRead = msgSnapshot.child("read").getValue(Boolean.class);
+
+                    // Отмечаем только чужие непрочитанные сообщения
+                    if (ownerId != null && !ownerId.equals(currentUserId)
+                            && (isRead == null || !isRead)) {
+                        msgSnapshot.getRef().child("read").setValue(true);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void showChatSettingsSheet() {
+        BottomSheetDialog bottomSheet = new BottomSheetDialog(this);
+        View sheetView = getLayoutInflater().inflate(R.layout.bottom_sheet_chat_settings, null);
+
+        LinearLayout actionToggleNotifications = sheetView.findViewById(R.id.action_toggle_notifications);
+        LinearLayout actionShareContact = sheetView.findViewById(R.id.action_share_contact);
+        LinearLayout actionOpenProfile = sheetView.findViewById(R.id.action_open_profile);
+
+        androidx.appcompat.widget.SwitchCompat notificationSwitch = sheetView.findViewById(R.id.notification_switch);
+        TextView notificationSubtitle = sheetView.findViewById(R.id.notification_subtitle_tv);
+        ImageView notificationIcon = sheetView.findViewById(R.id.notification_icon);
+
+        // Загружаем текущее состояние уведомлений
+        loadNotificationStatus(notificationSwitch, notificationSubtitle, notificationIcon);
+
+        // Переключатель уведомлений
+        notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            toggleChatNotifications(isChecked);
+            notificationSubtitle.setText(isChecked ? "Включены" : "Отключены");
+            notificationIcon.setImageResource(
+                    isChecked ? R.drawable.ic_notifications : R.drawable.ic_notifications_off
+            );
+        });
+
+        actionToggleNotifications.setOnClickListener(v -> {
+            notificationSwitch.setChecked(!notificationSwitch.isChecked());
+        });
+
+        // Поделиться контактом
+        actionShareContact.setOnClickListener(v -> {
+            bottomSheet.dismiss();
+            shareContact();
+        });
+
+        // Открыть профиль
+        actionOpenProfile.setOnClickListener(v -> {
+            bottomSheet.dismiss();
+            if (receiverId != null) {
+                Intent intent = new Intent(ChatActivity.this, UserProfileActivity.class);
+                intent.putExtra("userId", receiverId);
+                startActivity(intent);
+            }
+        });
+
+        bottomSheet.setContentView(sheetView);
+        bottomSheet.show();
+    }
+
+    private void toggleChatNotifications(boolean enabled) {
+        if (chatId == null || currentUserId == null) return;
+
+        FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("mutedBy")
+                .child(currentUserId)
+                .setValue(!enabled)
+                .addOnSuccessListener(aVoid -> {
+                    String message = enabled ?
+                            "Уведомления включены" : "Уведомления отключены для этого чата";
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка изменения настроек", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void loadNotificationStatus(androidx.appcompat.widget.SwitchCompat switchCompat,
+                                        TextView subtitle, ImageView icon) {
+        if (chatId == null) return;
+
+        FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("mutedBy")
+                .child(currentUserId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        Boolean isMuted = snapshot.getValue(Boolean.class);
+                        boolean notificationsEnabled = isMuted == null || !isMuted;
+
+                        switchCompat.setChecked(notificationsEnabled);
+                        subtitle.setText(notificationsEnabled ? "Включены" : "Отключены");
+                        icon.setImageResource(
+                                notificationsEnabled ? R.drawable.ic_notifications : R.drawable.ic_notifications_off
+                        );
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
+    }
+
+    private void shareContact() {
+        if (receiverId == null) return;
+
+        // Показываем диалог выбора чата
+        Intent intent = new Intent(this, SelectChatActivity.class);
+        intent.putExtra("shareContactUserId", receiverId);
+        intent.putExtra("shareContactUsername", binding.chatUsernameTv.getText().toString());
+        intent.putExtra("sourceChatId", chatId);
+        startActivity(intent);
+    }
+
+    public void sendContactMessage(String contactUserId, String contactUsername) {
+        long now = System.currentTimeMillis();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+
+        HashMap<String, Object> msg = new HashMap<>();
+        msg.put("text", "");
+        msg.put("ownerId", currentUserId);
+        msg.put("date", dateFormat.format(new Date()));
+        msg.put("timestamp", now);
+        msg.put("contactUserId", contactUserId);
+        msg.put("contactUsername", contactUsername);
+        msg.put("read", false);
+
+        DatabaseReference msgRef = FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("messages")
+                .push();
+
+        msgRef.setValue(msg)
+                .addOnSuccessListener(aVoid -> {
+                    updateLastMessage("👤 Контакт: " + contactUsername, now);
+                    incrementUnreadCount();
+                    scrollToBottom();
+                    Toast.makeText(this, "Контакт отправлен", Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
+                });
+    }
 }

@@ -20,11 +20,18 @@ public class Message {
     // Редактирование
     private boolean isEdited;
 
-    // НОВОЕ: Ответ на сообщение
-    private String replyToMessageId;      // ID сообщения, на которое отвечаем
-    private String replyToText;           // Текст исходного сообщения
-    private String replyToOwnerName;      // Имя отправителя исходного сообщения
-    private String replyToFileType;       // Тип файла (если в исходном был файл)
+    // Ответ на сообщение
+    private String replyToMessageId;
+    private String replyToText;
+    private String replyToOwnerName;
+    private String replyToFileType;
+
+    // НОВОЕ: Статус прочитанности
+    private boolean read;
+
+    // НОВОЕ: Данные контакта
+    private String contactUserId;
+    private String contactUsername;
 
     public Message() {}
 
@@ -35,6 +42,7 @@ public class Message {
         this.date = date;
         this.timestamp = timestamp;
         this.isEdited = false;
+        this.read = false;
     }
 
     public Message(String id, String ownerId, String text, String date, long timestamp,
@@ -52,6 +60,7 @@ public class Message {
         this.voiceDuration = voiceDuration;
         this.videoDuration = videoDuration;
         this.isEdited = false;
+        this.read = false;
     }
 
     // Getters и Setters
@@ -97,7 +106,6 @@ public class Message {
     public boolean isEdited() { return isEdited; }
     public void setEdited(boolean edited) { isEdited = edited; }
 
-    // НОВОЕ: Getters и Setters для ответов
     public String getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(String replyToMessageId) { this.replyToMessageId = replyToMessageId; }
 
@@ -110,7 +118,21 @@ public class Message {
     public String getReplyToFileType() { return replyToFileType; }
     public void setReplyToFileType(String replyToFileType) { this.replyToFileType = replyToFileType; }
 
-    // НОВОЕ: Проверка, является ли сообщение ответом
+    // НОВОЕ: Getter/Setter для read
+    public boolean isRead() { return read; }
+    public void setRead(boolean read) { this.read = read; }
+
+    // НОВОЕ: Getter/Setter для контакта
+    public String getContactUserId() { return contactUserId; }
+    public void setContactUserId(String contactUserId) { this.contactUserId = contactUserId; }
+
+    public String getContactUsername() { return contactUsername; }
+    public void setContactUsername(String contactUsername) { this.contactUsername = contactUsername; }
+
+    public boolean isContact() {
+        return contactUserId != null && !contactUserId.isEmpty();
+    }
+
     public boolean isReply() {
         return replyToMessageId != null && !replyToMessageId.isEmpty();
     }

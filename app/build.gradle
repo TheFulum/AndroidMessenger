@@ -11,8 +11,8 @@ android {
         applicationId "com.example.messenger"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode 4 * 1000 + 'git rev-list --count HEAD'.execute().text.trim().toInteger()
+        versionName "1.4.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

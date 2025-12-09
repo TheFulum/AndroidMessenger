@@ -159,23 +159,22 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             holder.forwardedTv.setVisibility(View.GONE);
         }
 
-        // НОВОЕ: Ответ
+        // Ответ
         if (message.isReply()) {
             holder.replyBlock.setVisibility(View.VISIBLE);
             holder.replyOwnerNameTv.setText(message.getReplyToOwnerName());
 
-            // Определяем текст для отображения
             String replyDisplayText;
             if (message.getReplyToFileType() != null && !message.getReplyToFileType().isEmpty()) {
                 switch (message.getReplyToFileType()) {
                     case "image":
-                        replyDisplayText = "📷 Фото";
+                        replyDisplayText = "📷 Photo";
                         break;
                     case "video":
-                        replyDisplayText = "🎥 Видео";
+                        replyDisplayText = "🎥 Video";
                         break;
                     case "voice":
-                        replyDisplayText = "🎤 Голосовое сообщение";
+                        replyDisplayText = "🎤 Voice";
                         break;
                     default:
                         replyDisplayText = "📄 " + message.getReplyToText();
@@ -186,7 +185,6 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             }
 
             holder.replyTextTv.setText(replyDisplayText);
-
             holder.replyBlock.setOnClickListener(v -> onReplyClick(v.getContext(), message));
         } else {
             holder.replyBlock.setVisibility(View.GONE);
@@ -194,9 +192,28 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
         holder.messageTv.setText(cleanForwardedText(message.getText()));
         holder.dateTv.setText(message.getDate());
-
-        // Метка "изменено"
         holder.editedTv.setVisibility(message.isEdited() ? View.VISIBLE : View.GONE);
+
+        // НОВОЕ: Показываем статус прочитанности только для своих сообщений
+        if (isMyMessage && holder.readStatusTv != null) {
+            holder.readStatusTv.setVisibility(View.VISIBLE);
+
+            if (message.isRead()) {
+                // Прочитано - две зеленые галочки
+                holder.readStatusTv.setText("✓✓");
+                holder.readStatusTv.setTextColor(
+                        holder.itemView.getContext().getResources().getColor(android.R.color.holo_green_light)
+                );
+            } else {
+                // Отправлено - одна серая галочка
+                holder.readStatusTv.setText("✓");
+                holder.readStatusTv.setTextColor(
+                        holder.itemView.getContext().getResources().getColor(android.R.color.darker_gray)
+                );
+            }
+        } else if (holder.readStatusTv != null) {
+            holder.readStatusTv.setVisibility(View.GONE);
+        }
 
         holder.itemView.setOnLongClickListener(v -> {
             showMessageActionsSheet(v, message, isMyMessage);
@@ -228,6 +245,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
         holder.dateTv.setText(message.getDate());
 
+        updateReadStatus(holder.readStatusTv, message, isMyMessage, holder.itemView.getContext());
+
         holder.imageView.setOnClickListener(v -> {
             openMediaFullscreen(v.getContext(), message.getFileUrl(), "image");
         });
@@ -250,14 +269,12 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             holder.forwardedTv.setVisibility(View.GONE);
         }
 
-        // Загружаем превью видео (первый кадр)
         Glide.with(holder.itemView.getContext())
                 .load(message.getFileUrl())
                 .placeholder(R.drawable.ic_image_placeholder)
                 .error(R.drawable.ic_image_placeholder)
                 .into(holder.videoThumbnail);
 
-        // Отображаем длительность
         holder.videoDurationTv.setText(message.getFormattedVideoDuration());
 
         String displayText = cleanForwardedText(message.getText());
@@ -270,7 +287,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
         holder.dateTv.setText(message.getDate());
 
-        // Клик по превью открывает видео на весь экран
+        updateReadStatus(holder.readStatusTv, message, isMyMessage, holder.itemView.getContext());
+
         holder.videoThumbnail.setOnClickListener(v -> {
             openMediaFullscreen(v.getContext(), message.getFileUrl(), "video");
         });
@@ -305,6 +323,10 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         }
 
         holder.dateTv.setText(message.getDate());
+
+        updateReadStatus(holder.readStatusTv, message, isMyMessage, holder.itemView.getContext());
+
+        updateReadStatus(holder.readStatusTv, message, isMyMessage, holder.itemView.getContext());
 
         holder.downloadBtn.setOnClickListener(v -> {
             downloadFile(v.getContext(), message.getFileUrl(), message.getFileName());
@@ -648,7 +670,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
     static class TextMessageViewHolder extends RecyclerView.ViewHolder {
         TextView messageTv, dateTv, forwardedTv, editedTv;
-        // НОВОЕ: Элементы блока ответа
+        TextView readStatusTv; // НОВОЕ
         LinearLayout replyBlock;
         TextView replyOwnerNameTv, replyTextTv;
 
@@ -658,8 +680,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             dateTv = itemView.findViewById(R.id.message_date_tv);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
             editedTv = itemView.findViewById(R.id.edited_tv);
+            readStatusTv = itemView.findViewById(R.id.read_status_tv);
 
-            // НОВОЕ
             replyBlock = itemView.findViewById(R.id.reply_block);
             replyOwnerNameTv = itemView.findViewById(R.id.reply_owner_name_tv);
             replyTextTv = itemView.findViewById(R.id.reply_text_tv);
@@ -669,6 +691,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     static class ImageMessageViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;
         TextView messageTv, dateTv, forwardedTv;
+        TextView readStatusTv; // НОВОЕ
         Button downloadBtn;
 
         ImageMessageViewHolder(@NonNull View itemView) {
@@ -678,12 +701,14 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             dateTv = itemView.findViewById(R.id.message_date_tv);
             downloadBtn = itemView.findViewById(R.id.download_btn);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+            readStatusTv = itemView.findViewById(R.id.read_status_tv); // НОВОЕ
         }
     }
 
     static class VideoMessageViewHolder extends RecyclerView.ViewHolder {
         ImageView videoThumbnail;
         TextView videoDurationTv, messageTv, dateTv, forwardedTv;
+        TextView readStatusTv; // НОВОЕ
         Button downloadBtn;
 
         VideoMessageViewHolder(@NonNull View itemView) {
@@ -694,11 +719,13 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             dateTv = itemView.findViewById(R.id.message_date_tv);
             downloadBtn = itemView.findViewById(R.id.download_btn);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+            readStatusTv = itemView.findViewById(R.id.read_status_tv); // НОВОЕ
         }
     }
 
     static class DocumentMessageViewHolder extends RecyclerView.ViewHolder {
         TextView fileNameTv, fileSizeTv, messageTv, dateTv, forwardedTv;
+        TextView readStatusTv; // НОВОЕ
         Button downloadBtn;
 
         DocumentMessageViewHolder(@NonNull View itemView) {
@@ -709,6 +736,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             dateTv = itemView.findViewById(R.id.message_date_tv);
             downloadBtn = itemView.findViewById(R.id.download_btn);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+            readStatusTv = itemView.findViewById(R.id.read_status_tv); // НОВОЕ
         }
     }
 
@@ -716,6 +744,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         ImageButton playPauseBtn;
         SeekBar seekBar;
         TextView voiceDurationTv, dateTv, forwardedTv;
+        TextView readStatusTv; // НОВОЕ
 
         VoiceMessageViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -724,8 +753,10 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             voiceDurationTv = itemView.findViewById(R.id.voice_duration_tv);
             dateTv = itemView.findViewById(R.id.message_date_tv);
             forwardedTv = itemView.findViewById(R.id.forwarded_tv);
+            readStatusTv = itemView.findViewById(R.id.read_status_tv); // НОВОЕ
         }
     }
+
     private void handleReply(View view, Message message) {
         // Получаем имя отправителя
         String ownerId = message.getOwnerId();
@@ -769,4 +800,19 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         }
     }
 
+    private void updateReadStatus(TextView readStatusTv, Message message, boolean isMyMessage, Context context) {
+        if (isMyMessage && readStatusTv != null) {
+            readStatusTv.setVisibility(View.VISIBLE);
+
+            if (message.isRead()) {
+                readStatusTv.setText("✓✓");
+                readStatusTv.setTextColor(context.getResources().getColor(android.R.color.holo_green_light));
+            } else {
+                readStatusTv.setText("✓");
+                readStatusTv.setTextColor(context.getResources().getColor(android.R.color.darker_gray));
+            }
+        } else if (readStatusTv != null) {
+            readStatusTv.setVisibility(View.GONE);
+        }
+    }
 }

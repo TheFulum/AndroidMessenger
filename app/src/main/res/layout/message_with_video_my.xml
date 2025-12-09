@@ -125,16 +125,36 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- Время снизу -->
-    <TextView
-        android:id="@+id/message_date_tv"
+    <!-- ОБНОВЛЕНО: Время и статус прочитанности -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:layout_marginTop="4dp"
-        android:fontFamily="@font/ubuntu_light"
-        android:textColor="?android:textColorSecondary"
-        android:textSize="12sp"
-        tools:text="12:34" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/message_date_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/ubuntu_light"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="12sp"
+            tools:text="06.12.2025 19:19" />
+
+        <!-- НОВОЕ: Статус прочитанности -->
+        <TextView
+            android:id="@+id/read_status_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="✓"
+            android:textSize="14sp"
+            android:textColor="?android:textColorSecondary"
+            android:fontFamily="@font/ubuntu_light"
+            tools:text="✓✓" />
+
+    </LinearLayout>
 
 </LinearLayout>

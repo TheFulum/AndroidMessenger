@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -70,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
 
         initFragments();
         setupAuthListener();
+
+        // ВАЖНО: Запускаем сервис уведомлений
         requestNotificationPermissionIfNeeded();
 
         if (savedInstanceState == null) {
@@ -80,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
         setupBottomNavigation();
         setupCheckTimer();
     }
-
 
     private boolean checkAuthentication() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -108,20 +110,51 @@ public class MainActivity extends AppCompatActivity {
         FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
     }
 
+    // ОБНОВЛЕНО: Правильная проверка и запрос разрешений
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                     != PackageManager.PERMISSION_GRANTED) {
+
+                // Показываем объяснение перед запросом
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.POST_NOTIFICATIONS)) {
+                    Toast.makeText(this,
+                            "Разрешите уведомления для получения новых сообщений",
+                            Toast.LENGTH_LONG).show();
+                }
+
                 ActivityCompat.requestPermissions(
                         this,
                         new String[]{Manifest.permission.POST_NOTIFICATIONS},
                         NOTIFICATION_PERMISSION_REQUEST_CODE
                 );
             } else {
+                // Разрешение уже есть
                 startMessageService();
             }
         } else {
+            // Android 12 и ниже - разрешение не требуется
             startMessageService();
+        }
+    }
+
+    // НОВОЕ: Обработка результата запроса разрешений
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Уведомления включены", Toast.LENGTH_SHORT).show();
+                startMessageService();
+            } else {
+                Toast.makeText(this,
+                        "Уведомления отключены. Вы не будете получать оповещения о новых сообщениях",
+                        Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -156,44 +189,32 @@ public class MainActivity extends AppCompatActivity {
         currentFragment = fragment;
     }
 
+    // ОБНОВЛЕНО: Улучшенный запуск сервиса с проверками
     private void startMessageService() {
         try {
             Intent serviceIntent = new Intent(this, MessageListenerService.class);
-            startService(serviceIntent);
-        } catch (Exception ignored) {}
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+
+            Log.d("MainActivity", "MessageListenerService started successfully");
+        } catch (Exception e) {
+            Log.e("MainActivity", "Failed to start service: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void navigateToLogin() {
+        // Останавливаем сервис при выходе
+        stopService(new Intent(this, MessageListenerService.class));
+
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    private void setUserOnline() {
-        if (currentUserId == null) return;
-
-        Map<String, Object> status = new HashMap<>();
-        status.put("online", true);
-        status.put("lastSeen", ServerValue.TIMESTAMP);
-
-        FirebaseDatabase.getInstance()
-                .getReference("Users")
-                .child(currentUserId)
-                .updateChildren(status);
-    }
-
-    private void setUserOffline() {
-        if (currentUserId == null) return;
-
-        Map<String, Object> status = new HashMap<>();
-        status.put("online", false);
-        status.put("lastSeen", ServerValue.TIMESTAMP);
-
-        FirebaseDatabase.getInstance()
-                .getReference("Users")
-                .child(currentUserId)
-                .updateChildren(status);
     }
 
     private void checkIfDisabled() {
@@ -219,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
     }
-
 
     private void setupCheckTimer() {
         checkRunnable = new Runnable() {
@@ -266,7 +286,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("MainActivity", "Presence setup error: " + error.getMessage());
+            }
         });
     }
 }
