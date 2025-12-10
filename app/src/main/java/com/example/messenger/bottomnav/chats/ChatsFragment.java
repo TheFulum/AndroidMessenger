@@ -59,15 +59,36 @@ public class ChatsFragment extends Fragment {
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupSearch() {
+        updateClearIcon(false);
+
         searchEt.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
-            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { applyFilter(s.toString()); }
-            @Override public void afterTextChanged(Editable s) {}
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updateClearIcon(s.length() > 0);
+                applyFilter(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
         });
 
         searchEt.setOnTouchListener((v, event) -> {
             if (event.getAction() == MotionEvent.ACTION_UP) {
-                searchEt.setText("");
+                if (isClearIconClicked(searchEt, event)) {
+                    searchEt.setText("");
+                    hideKeyboard();
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        searchEt.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                hideKeyboard();
                 return true;
             }
             return false;
@@ -172,5 +193,38 @@ public class ChatsFragment extends Fragment {
         }
 
         chatsAdapter.notifyDataSetChanged();
+    }
+
+    private void updateClearIcon(boolean show) {
+        searchEt.setCompoundDrawablesWithIntrinsicBounds(
+                R.drawable.ic_search,
+                0,
+                show ? R.drawable.ic_clear : 0,
+                0
+        );
+    }
+
+    private boolean isClearIconClicked(EditText editText, MotionEvent event) {
+        if (editText.getCompoundDrawables()[2] == null) {
+            return false;
+        }
+
+        float touchX = event.getX();
+        int clearIconStart = editText.getWidth() - editText.getPaddingEnd() -
+                editText.getCompoundDrawables()[2].getIntrinsicWidth();
+
+        return touchX >= clearIconStart;
+    }
+
+    private void hideKeyboard() {
+        if (getContext() == null || searchEt == null) return;
+
+        android.view.inputmethod.InputMethodManager imm =
+                (android.view.inputmethod.InputMethodManager) getContext()
+                        .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+
+        if (imm != null) {
+            imm.hideSoftInputFromWindow(searchEt.getWindowToken(), 0);
+        }
     }
 }
