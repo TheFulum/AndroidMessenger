@@ -50,6 +50,9 @@ public class SelectChatActivity extends AppCompatActivity {
     private ValueEventListener chatsListener;
     private DatabaseReference chatsRef;
     private boolean isForwarding = false;
+    private String shareContactUserId;
+    private String shareContactUsername;
+    private boolean isSharingContact = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +74,11 @@ public class SelectChatActivity extends AppCompatActivity {
         voiceDuration = getIntent().getLongExtra("voiceDuration", 0);
         hasFile = fileUrl != null && !fileUrl.isEmpty();
 
+        // НОВОЕ: Получаем данные о контакте
+        shareContactUserId = getIntent().getStringExtra("shareContactUserId");
+        shareContactUsername = getIntent().getStringExtra("shareContactUsername");
+        isSharingContact = shareContactUserId != null && !shareContactUserId.isEmpty();
+
         if (currentUserId == null) {
             Toast.makeText(this, "Forwarding error", Toast.LENGTH_SHORT).show();
             finish();
@@ -89,9 +97,11 @@ public class SelectChatActivity extends AppCompatActivity {
             if (!isForwarding) finish();
         });
 
-        // Меняем заголовок
         String title = "Forwarding ";
-        if (hasFile) {
+
+        if (isSharingContact) {
+            title = "Share contact";
+        } else if (hasFile) {
             if ("image".equals(fileType)) {
                 title += "📷 photo";
             } else if ("voice".equals(fileType)) {
@@ -102,6 +112,7 @@ public class SelectChatActivity extends AppCompatActivity {
         } else {
             title += "message";
         }
+
         binding.titleTv.setText(title);
     }
 
@@ -297,44 +308,55 @@ public class SelectChatActivity extends AppCompatActivity {
 
         isForwarding = true;
         binding.backBtn.setEnabled(false);
-        Toast.makeText(this, "Forwarding...", Toast.LENGTH_SHORT).show();
+
+        // НОВОЕ: Разные сообщения для контакта и обычного контента
+        String loadingMessage = isSharingContact ? "Sharing contact..." : "Forwarding...";
+        Toast.makeText(this, loadingMessage, Toast.LENGTH_SHORT).show();
 
         long now = System.currentTimeMillis();
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
         HashMap<String, Object> msg = new HashMap<>();
 
-        // Формируем текст
-        String forwardedText;
-        if (hasFile) {
-            // Для файлов
-            if (messageText != null && !messageText.isEmpty()) {
-                forwardedText = messageText;
-            } else {
-                forwardedText = "";
-            }
+        // НОВОЕ: Если пересылаем контакт
+        if (isSharingContact) {
+            msg.put("text", "");
+            msg.put("ownerId", currentUserId);
+            msg.put("date", dateFormat.format(new Date()));
+            msg.put("timestamp", now);
+            msg.put("contactUserId", shareContactUserId);
+            msg.put("contactUsername", shareContactUsername);
+            msg.put("read", false);
         } else {
-            // Для текстовых
-            forwardedText = "📩 Forwarded from " + currentUsername + ":\n" +
-                    (messageText != null ? messageText : "");
-        }
+            // Обычная пересылка
+            String forwardedText;
+            if (hasFile) {
+                if (messageText != null && !messageText.isEmpty()) {
+                    forwardedText = messageText;
+                } else {
+                    forwardedText = "";
+                }
+            } else {
+                forwardedText = "📩 Forwarded from " + currentUsername + ":\n" +
+                        (messageText != null ? messageText : "");
+            }
 
-        msg.put("text", forwardedText);
-        msg.put("ownerId", currentUserId);
-        msg.put("date", dateFormat.format(new Date()));
-        msg.put("timestamp", now);
-        msg.put("isForwarded", true);
-        msg.put("forwardedFrom", currentUsername);
+            msg.put("text", forwardedText);
+            msg.put("ownerId", currentUserId);
+            msg.put("date", dateFormat.format(new Date()));
+            msg.put("timestamp", now);
+            msg.put("isForwarded", true);
+            msg.put("forwardedFrom", currentUsername);
 
-        // Если есть файл
-        if (hasFile) {
-            msg.put("fileUrl", fileUrl);
-            msg.put("fileType", fileType);
-            msg.put("fileName", fileName);
-            msg.put("fileSize", fileSize);
+            if (hasFile) {
+                msg.put("fileUrl", fileUrl);
+                msg.put("fileType", fileType);
+                msg.put("fileName", fileName);
+                msg.put("fileSize", fileSize);
 
-            if ("voice".equals(fileType)) {
-                msg.put("voiceDuration", voiceDuration);
+                if ("voice".equals(fileType)) {
+                    msg.put("voiceDuration", voiceDuration);
+                }
             }
         }
 
@@ -349,7 +371,8 @@ public class SelectChatActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     isForwarding = false;
                     binding.backBtn.setEnabled(true);
-                    Toast.makeText(this, "Forwarding error", Toast.LENGTH_SHORT).show();
+                    String errorMsg = isSharingContact ? "Sharing error" : "Forwarding error";
+                    Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -359,7 +382,11 @@ public class SelectChatActivity extends AppCompatActivity {
 
         // Формируем превью
         String preview;
-        if (hasFile) {
+
+        // НОВОЕ: Обработка контакта
+        if (isSharingContact) {
+            preview = "👤 Contact: " + shareContactUsername;
+        } else if (hasFile) {
             if ("image".equals(fileType)) {
                 preview = "📩 Forwarded: 📷 Photo";
             } else if ("voice".equals(fileType)) {
@@ -378,13 +405,40 @@ public class SelectChatActivity extends AppCompatActivity {
                 .child(targetChatId)
                 .updateChildren(update)
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "The message has been forwarded", Toast.LENGTH_SHORT).show();
+                    String successMsg = isSharingContact ?
+                            "Contact shared successfully" : "The message has been forwarded";
+                    Toast.makeText(this, successMsg, Toast.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "The message has been forwarded", Toast.LENGTH_SHORT).show();
+                    String successMsg = isSharingContact ?
+                            "Contact shared successfully" : "The message has been forwarded";
+                    Toast.makeText(this, successMsg, Toast.LENGTH_SHORT).show();
                     finish();
                 });
+    }
+
+    @NonNull
+    private HashMap<String, Object> getStringObjectHashMap(long timestamp) {
+        HashMap<String, Object> update = new HashMap<>();
+        update.put("lastMessageTime", timestamp);
+
+        // Формируем превью
+        String preview;
+        if (hasFile) {
+            if ("image".equals(fileType)) {
+                preview = "📩 Forwarded: 📷 Photo";
+            } else if ("voice".equals(fileType)) {
+                preview = "📩 Forwarded: 🎤 Voice message";
+            } else {
+                preview = "📩 Forwarded: 📄 " + fileName;
+            }
+        } else {
+            preview = "📩 Forwarded from " + currentUsername;
+        }
+
+        update.put("lastMessagePreview", preview);
+        return update;
     }
 
     @Override

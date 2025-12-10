@@ -14,28 +14,26 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 import com.example.messenger.R;
-import com.example.messenger.message.Message;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.*;
 
 public class MessageListenerService extends Service {
 
     private static final String TAG = "MessageListenerService";
-    private static final String CHANNEL_ID = "messages_channel";
     private static final int FOREGROUND_ID = 1;
+    private static final String FOREGROUND_CHANNEL_ID = "foreground_service_channel";
+
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "Service onCreate called");
 
-        // Создаём канал уведомлений
-        NotificationHelper.createChannel(this);
-
-        // Запускаем как Foreground Service (для Android 8+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForeground(FOREGROUND_ID, createForegroundNotification());
         }
+
+        NotificationHelper.createChannel(this);
 
         String myId = FirebaseAuth.getInstance().getUid();
         if (myId == null) {
@@ -63,31 +61,30 @@ public class MessageListenerService extends Service {
                     listenForMessages(chatId, myId, otherUserId);
                 }
             }
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, "Failed to load chats: " + e.getMessage());
-        });
+        }).addOnFailureListener(e -> Log.e(TAG, "Failed to load chats: " + e.getMessage()));
     }
 
     private Notification createForegroundNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Message Notifications",
-                    NotificationManager.IMPORTANCE_LOW
+                    FOREGROUND_CHANNEL_ID,
+                    "Service channel",
+                    NotificationManager.IMPORTANCE_MIN
             );
 
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(channel);
         }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+        return new NotificationCompat.Builder(this, FOREGROUND_CHANNEL_ID)
                 .setContentTitle("Messenger")
                 .setContentText("Listening for new messages")
                 .setSmallIcon(R.drawable.ic_notification)
-                .setPriority(NotificationCompat.PRIORITY_LOW);
-
-        return builder.build();
+                .setOngoing(true)
+                .build();
     }
+
 
     private void listenForMessages(String chatId, String myId, String otherUserId) {
         DatabaseReference ref = FirebaseDatabase.getInstance()
@@ -106,39 +103,16 @@ public class MessageListenerService extends Service {
                     String ownerId = snapshot.child("ownerId").getValue(String.class);
                     String text = snapshot.child("text").getValue(String.class);
                     String fileType = snapshot.child("fileType").getValue(String.class);
+                    String contactUserId = snapshot.child("contactUserId").getValue(String.class);
 
                     Log.d(TAG, "New message received in chat: " + chatId);
 
-                    // Игнорируем свои сообщения
                     if (ownerId != null && ownerId.equals(myId)) {
                         Log.d(TAG, "Ignoring own message");
                         return;
                     }
 
-                    // Определяем текст уведомления
-                    String notificationText = text;
-                    if (fileType != null && !fileType.isEmpty()) {
-                        switch (fileType) {
-                            case "image":
-                                notificationText = "📷 Фото";
-                                break;
-                            case "video":
-                                notificationText = "🎥 Видео";
-                                break;
-                            case "voice":
-                                notificationText = "🎤 Голосовое сообщение";
-                                break;
-                            case "document":
-                                notificationText = "📄 Документ";
-                                break;
-                        }
-                    }
-
-                    if (notificationText == null || notificationText.isEmpty()) {
-                        notificationText = "Новое сообщение";
-                    }
-
-                    loadUsernameAndNotify(otherUserId, notificationText, chatId);
+                    checkNotificationStatusAndNotify(chatId, myId, otherUserId, text, fileType, contactUserId);
 
                 } catch (Exception e) {
                     Log.e(TAG, "Error processing message: " + e.getMessage());
@@ -153,6 +127,58 @@ public class MessageListenerService extends Service {
                 Log.e(TAG, "Database error: " + error.getMessage());
             }
         });
+    }
+
+    private void checkNotificationStatusAndNotify(String chatId, String myId, String otherUserId,
+                                                  String text, String fileType, String contactUserId) {
+        FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("mutedBy")
+                .child(myId)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        Boolean isMuted = snapshot.getValue(Boolean.class);
+
+                        if (isMuted != null && isMuted) {
+                            Log.d(TAG, "Notifications muted for chat: " + chatId);
+                            return;
+                        }
+
+                        String notificationText = text;
+
+                        if (contactUserId != null && !contactUserId.isEmpty()) {
+                            notificationText = "👤 Contact";
+                        } else if (fileType != null && !fileType.isEmpty()) {
+                            switch (fileType) {
+                                case "image":
+                                    notificationText = "📷 Photo";
+                                    break;
+                                case "video":
+                                    notificationText = "🎥 Video";
+                                    break;
+                                case "voice":
+                                    notificationText = "🎤 Voice";
+                                    break;
+                                case "document":
+                                    notificationText = "📄 Document";
+                                    break;
+                            }
+                        }
+
+                        if (notificationText == null || notificationText.isEmpty()) {
+                            notificationText = "New message";
+                        }
+
+                        loadUsernameAndNotify(otherUserId, notificationText, chatId);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Log.e(TAG, "Failed to check mute status: " + error.getMessage());
+                    }
+                });
     }
 
     private void loadUsernameAndNotify(String userId, String messageText, String chatId) {
@@ -193,7 +219,7 @@ public class MessageListenerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand called");
-        return START_STICKY; // Сервис будет перезапущен, если убит системой
+        return START_STICKY;
     }
 
     @Nullable

@@ -645,8 +645,12 @@ public class ChatActivity extends AppCompatActivity {
                     String replyToOwnerName = msgSnapshot.child("replyToOwnerName").getValue(String.class);
                     String replyToFileType = msgSnapshot.child("replyToFileType").getValue(String.class);
 
-                    // НОВОЕ: Загружаем статус прочитанности
+                    // Загружаем статус прочитанности
                     Boolean read = msgSnapshot.child("read").getValue(Boolean.class);
+
+                    // НОВОЕ: Загружаем данные контакта
+                    String contactUserId = msgSnapshot.child("contactUserId").getValue(String.class);
+                    String contactUsername = msgSnapshot.child("contactUsername").getValue(String.class);
 
                     if (ownerId != null) {
                         Message message = new Message(
@@ -679,8 +683,14 @@ public class ChatActivity extends AppCompatActivity {
                             message.setReplyToFileType(replyToFileType);
                         }
 
-                        // НОВОЕ: Устанавливаем статус прочитанности
+                        // Устанавливаем статус прочитанности
                         message.setRead(read != null && read);
+
+                        // НОВОЕ: Устанавливаем данные контакта
+                        if (contactUserId != null && !contactUserId.isEmpty()) {
+                            message.setContactUserId(contactUserId);
+                            message.setContactUsername(contactUsername);
+                        }
 
                         messages.add(message);
                     }
@@ -1164,11 +1174,6 @@ public class ChatActivity extends AppCompatActivity {
                 .child("mutedBy")
                 .child(currentUserId)
                 .setValue(!enabled)
-                .addOnSuccessListener(aVoid -> {
-                    String message = enabled ?
-                            "Уведомления включены" : "Уведомления отключены для этого чата";
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-                })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Ошибка изменения настроек", Toast.LENGTH_SHORT).show();
                 });
@@ -1241,5 +1246,11 @@ public class ChatActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void setupChatMenu() {
+        binding.menuBtn.setOnClickListener(v -> showChatSettingsSheet());
+
+        binding.closeReplyBtn.setOnClickListener(v -> cancelReply());
     }
 }

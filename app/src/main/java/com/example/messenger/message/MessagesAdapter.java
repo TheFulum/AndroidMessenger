@@ -29,14 +29,20 @@ import com.example.messenger.ChatActivity;
 import com.example.messenger.MediaViewerActivity;
 import com.example.messenger.R;
 import com.example.messenger.SelectChatActivity;
+import com.example.messenger.UserProfileActivity;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -50,6 +56,8 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private static final int TYPE_VOICE_OTHER = 7;
     private static final int TYPE_VIDEO_MY = 8;
     private static final int TYPE_VIDEO_OTHER = 9;
+    private static final int TYPE_CONTACT_MY = 10;
+    private static final int TYPE_CONTACT_OTHER = 11;
     private Context context;
 
     private List<Message> messages;
@@ -74,6 +82,11 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     public int getItemViewType(int position) {
         Message message = messages.get(position);
         boolean isMy = message.getOwnerId().equals(currentUserId);
+
+        // Проверка на контакт
+        if (message.isContact()) {
+            return isMy ? TYPE_CONTACT_MY : TYPE_CONTACT_OTHER;
+        }
 
         if (message.hasFile()) {
             if (message.isImage()) {
@@ -126,6 +139,12 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             case TYPE_VOICE_OTHER:
                 return new VoiceMessageViewHolder(
                         inflater.inflate(R.layout.message_with_voice_other, parent, false));
+            case TYPE_CONTACT_MY:
+                return new ContactMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_contact_my, parent, false));
+            case TYPE_CONTACT_OTHER:
+                return new ContactMessageViewHolder(
+                        inflater.inflate(R.layout.message_with_contact, parent, false));
             default:
                 return new TextMessageViewHolder(
                         inflater.inflate(R.layout.message_rv_item, parent, false));
@@ -147,6 +166,24 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             bindDocumentMessage((DocumentMessageViewHolder) holder, message, isMyMessage);
         } else if (holder instanceof VoiceMessageViewHolder) {
             bindVoiceMessage((VoiceMessageViewHolder) holder, message, isMyMessage);
+        } else if (holder instanceof ContactMessageViewHolder) {
+            bindContactMessage((ContactMessageViewHolder) holder, message, isMyMessage);
+        }
+    }
+
+    static class ContactMessageViewHolder extends RecyclerView.ViewHolder {
+        CircleImageView contactAvatar;
+        TextView contactNameTv, dateTv;
+        TextView readStatusTv;
+        View contactCard;
+
+        ContactMessageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            contactAvatar = itemView.findViewById(R.id.contact_avatar);
+            contactNameTv = itemView.findViewById(R.id.contact_name_tv);
+            dateTv = itemView.findViewById(R.id.message_date_tv);
+            readStatusTv = itemView.findViewById(R.id.read_status_tv);
+            contactCard = itemView.findViewById(R.id.contact_card);
         }
     }
 
@@ -610,6 +647,16 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     }
 
     private void forwardMessage(View view, Message message) {
+        // НОВОЕ: Проверяем, является ли сообщение контактом
+        if (message.isContact()) {
+            Intent intent = new Intent(view.getContext(), SelectChatActivity.class);
+            intent.putExtra("shareContactUserId", message.getContactUserId());
+            intent.putExtra("shareContactUsername", message.getContactUsername());
+            intent.putExtra("sourceChatId", chatId);
+            view.getContext().startActivity(intent);
+            return;
+        }
+
         Intent intent = new Intent(view.getContext(), SelectChatActivity.class);
 
         intent.putExtra("messageText", message.getText());
@@ -814,5 +861,61 @@ public class MessagesAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         } else if (readStatusTv != null) {
             readStatusTv.setVisibility(View.GONE);
         }
+    }
+
+    private void bindContactMessage(ContactMessageViewHolder holder, Message message, boolean isMyMessage) {
+        holder.contactNameTv.setText(message.getContactUsername());
+        holder.dateTv.setText(message.getDate());
+
+        // Загружаем аватар контакта
+        loadContactAvatar(holder, message.getContactUserId());
+
+        // Статус прочитанности
+        updateReadStatus(holder.readStatusTv, message, isMyMessage, holder.itemView.getContext());
+
+        // Клик по контакту - открытие профиля
+        holder.contactCard.setOnClickListener(v -> {
+            Intent intent = new Intent(v.getContext(), UserProfileActivity.class);
+            intent.putExtra("userId", message.getContactUserId());
+            v.getContext().startActivity(intent);
+        });
+
+        // Долгое нажатие для меню
+        holder.itemView.setOnLongClickListener(v -> {
+            showMessageActionsSheet(v, message, isMyMessage);
+            return true;
+        });
+    }
+
+    private void loadContactAvatar(ContactMessageViewHolder holder, String userId) {
+        if (userId == null) {
+            holder.contactAvatar.setImageResource(R.drawable.baseline_person_24);
+            return;
+        }
+
+        FirebaseDatabase.getInstance()
+                .getReference("Users")
+                .child(userId)
+                .child("profileImageUrl")
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        String imageUrl = snapshot.getValue(String.class);
+                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                            Glide.with(holder.itemView.getContext())
+                                    .load(imageUrl)
+                                    .placeholder(R.drawable.baseline_person_24)
+                                    .error(R.drawable.baseline_person_24)
+                                    .into(holder.contactAvatar);
+                        } else {
+                            holder.contactAvatar.setImageResource(R.drawable.baseline_person_24);
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        holder.contactAvatar.setImageResource(R.drawable.baseline_person_24);
+                    }
+                });
     }
 }

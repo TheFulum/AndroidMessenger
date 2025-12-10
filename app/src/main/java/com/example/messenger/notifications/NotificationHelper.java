@@ -22,11 +22,11 @@ public class NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Сообщения",
+                    "Message",
                     NotificationManager.IMPORTANCE_HIGH
             );
 
-            channel.setDescription("Уведомления о новых сообщениях");
+            channel.setDescription("Notifications of new messages");
             channel.enableLights(true);
             channel.enableVibration(true);
 
@@ -42,25 +42,20 @@ public class NotificationHelper {
         try {
             Log.d(TAG, "Showing notification - Title: " + title + ", Text: " + text);
 
-            // Создаём Intent для открытия ChatActivity
             Intent chatIntent = new Intent(ctx, ChatActivity.class);
             chatIntent.putExtra("chatId", chatId);
             chatIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-            // PendingIntent с правильными флагами
             int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                flags |= PendingIntent.FLAG_IMMUTABLE;
-            }
+            flags |= PendingIntent.FLAG_IMMUTABLE;
 
             PendingIntent pendingIntent = PendingIntent.getActivity(
                     ctx,
-                    chatId.hashCode(), // Уникальный ID для каждого чата
+                    chatId.hashCode(),
                     chatIntent,
                     flags
             );
 
-            // Создаём уведомление
             NotificationCompat.Builder builder = new NotificationCompat.Builder(ctx, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
@@ -72,7 +67,6 @@ public class NotificationHelper {
 
             NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
             if (nm != null) {
-                // Используем hashCode chatId как уникальный ID уведомления
                 nm.notify(chatId.hashCode(), builder.build());
                 Log.d(TAG, "Notification shown successfully");
             } else {
