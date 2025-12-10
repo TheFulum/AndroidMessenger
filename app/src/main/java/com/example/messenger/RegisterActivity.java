@@ -16,7 +16,10 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.messenger.databinding.ActivityRegisterBinding;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
@@ -30,8 +33,6 @@ public class RegisterActivity extends AppCompatActivity {
     private ActivityRegisterBinding binding;
     private boolean isLoading = false;
     private boolean isPasswordVisible = false;
-
-    // Паттерн для валидации username
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{3,20}$");
 
     @Override
@@ -58,12 +59,10 @@ public class RegisterActivity extends AppCompatActivity {
         TextWatcher textWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 updateSignUpButtonState();
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         };
@@ -84,15 +83,12 @@ public class RegisterActivity extends AppCompatActivity {
         binding.showPassBtn.setOnClickListener(v -> {
             isPasswordVisible = !isPasswordVisible;
             if (isPasswordVisible) {
-                // показать пароль
                 binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
                 binding.showPassBtn.setImageResource(R.drawable.baseline_visibility_24);
             } else {
-                // скрыть пароль
                 binding.passwordEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
                 binding.showPassBtn.setImageResource(R.drawable.baseline_visibility_off_24);
             }
-            // курсор в конец
             binding.passwordEt.setSelection(binding.passwordEt.getText().length());
         });
     }
@@ -111,70 +107,52 @@ public class RegisterActivity extends AppCompatActivity {
         String password = binding.passwordEt.getText().toString().trim();
         String username = binding.usernameEt.getText().toString().trim();
 
-        // ========== ВАЛИДАЦИЯ ==========
-
-        // 1. Проверка на пустоту
+        // Валидация
         if (email.isEmpty() || password.isEmpty() || username.isEmpty()) {
             Toast.makeText(this, "Заполните все поля", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        // 2. Валидация username
         if (username.length() < 3) {
             Toast.makeText(this, "Имя пользователя: минимум 3 символа", Toast.LENGTH_SHORT).show();
             return;
         }
-
         if (username.length() > 20) {
             Toast.makeText(this, "Имя пользователя: максимум 20 символов", Toast.LENGTH_SHORT).show();
             return;
         }
-
         if (!USERNAME_PATTERN.matcher(username).matches()) {
             Toast.makeText(this, "Только латинские буквы, цифры и _", Toast.LENGTH_LONG).show();
             return;
         }
-
-        // 3. Валидация email
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
             Toast.makeText(this, "Введите корректный email", Toast.LENGTH_SHORT).show();
             return;
         }
-
-        // 4. Валидация пароля
         if (password.length() < 6) {
             Toast.makeText(this, "Пароль: минимум 6 символов", Toast.LENGTH_SHORT).show();
             return;
         }
-
         if (password.length() > 30) {
             Toast.makeText(this, "Пароль: максимум 30 символов", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Проверяем уникальность username перед регистрацией
         checkUsernameAndRegister(username, email, password);
     }
 
     private void checkUsernameAndRegister(String username, String email, String password) {
         showLoader(true);
-
         Query query = FirebaseDatabase.getInstance()
                 .getReference("Users")
                 .orderByChild("username")
                 .equalTo(username);
-
         query.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
-                    // Username уже занят
                     showLoader(false);
-                    Toast.makeText(RegisterActivity.this,
-                            "Это имя пользователя уже занято",
-                            Toast.LENGTH_SHORT).show();
+                    Toast.makeText(RegisterActivity.this, "Это имя пользователя уже занято", Toast.LENGTH_SHORT).show();
                 } else {
-                    // Username свободен - регистрируем
                     createFirebaseAccount(username, email, password);
                 }
             }
@@ -182,47 +160,66 @@ public class RegisterActivity extends AppCompatActivity {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 showLoader(false);
-                Toast.makeText(RegisterActivity.this,
-                        "Ошибка проверки. Попробуйте позже",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(RegisterActivity.this, "Ошибка проверки. Попробуйте позже", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void createFirebaseAccount(String username, String email, String password) {
+        // showLoader(true); // Уже показан в checkUsernameAndRegister
         FirebaseAuth.getInstance()
                 .createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
-                        String uid = task.getResult().getUser().getUid();
-                        saveUserToDatabase(uid, username, email);
+                        FirebaseUser user = task.getResult().getUser();
+                        String uid = user.getUid();
+                        // Зачеиним: сначала верификация, потом сохранение
+                        sendEmailVerification(user, () -> {
+                            // При успехе верификации - сохраняем в БД
+                            saveUserToDatabase(uid, username, email, user);
+                        });
                     } else {
                         showLoader(false);
-                        String errorMessage = task.getException() != null
-                                ? task.getException().getMessage()
-                                : "Ошибка регистрации";
-
-                        // Преобразуем типичные ошибки Firebase в понятный текст
-                        if (errorMessage.contains("email address is already in use")) {
-                            errorMessage = "Этот email уже зарегистрирован";
-                        } else if (errorMessage.contains("network error")) {
-                            errorMessage = "Ошибка сети. Проверьте подключение";
-                        } else if (errorMessage.contains("weak password")) {
-                            errorMessage = "Слишком простой пароль";
-                        }
-
+                        String errorMessage = getString(task);
                         Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                     }
                 });
     }
 
-    private void saveUserToDatabase(String uid, String username, String email) {
+    private void sendEmailVerification(FirebaseUser user, Runnable onSuccess) {
+        user.sendEmailVerification()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        onSuccess.run(); // Продолжаем к сохранению без тоста здесь
+                    } else {
+                        showLoader(false);
+                        Toast.makeText(this, "Не удалось отправить email для верификации. Попробуйте позже.", Toast.LENGTH_LONG).show();
+                        user.delete(); // Очистка
+                    }
+                });
+    }
+
+    @NonNull
+    private static String getString(Task<AuthResult> task) {
+        String errorMessage = task.getException() != null ? task.getException().getMessage() : "Ошибка регистрации";
+        if (errorMessage.contains("email address is already in use")) {
+            errorMessage = "Этот email уже зарегистрирован";
+        } else if (errorMessage.contains("network error")) {
+            errorMessage = "Ошибка сети. Проверьте подключение";
+        } else if (errorMessage.contains("weak password")) {
+            errorMessage = "Слишком простой пароль";
+        }
+        return errorMessage;
+    }
+
+    private void saveUserToDatabase(String uid, String username, String email, FirebaseUser user) {
         HashMap<String, Object> userInfo = new HashMap<>();
         userInfo.put("uid", uid);
         userInfo.put("username", username);
         userInfo.put("email", email);
         userInfo.put("online", false);
         userInfo.put("lastSeen", 0L);
+        userInfo.put("emailVerified", false);
 
         FirebaseDatabase.getInstance()
                 .getReference("Users")
@@ -230,15 +227,15 @@ public class RegisterActivity extends AppCompatActivity {
                 .setValue(userInfo)
                 .addOnSuccessListener(unused -> {
                     showLoader(false);
-                    Toast.makeText(this, "Аккаунт успешно создан!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "✅ Регистрация успешна!\n📧 Мы отправили письмо для подтверждения. Если не видно в inbox — проверьте спам.", Toast.LENGTH_LONG).show();
+                    FirebaseAuth.getInstance().signOut();
                     navigateToLogin();
                 })
                 .addOnFailureListener(e -> {
                     showLoader(false);
                     Toast.makeText(this, "Ошибка сохранения данных: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    // Удаляем аккаунт из Auth, если не удалось сохранить в БД
-                    if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-                        FirebaseAuth.getInstance().getCurrentUser().delete();
+                    if (user != null) {
+                        user.delete(); // Очистка при ошибке сохранения
                     }
                 });
     }

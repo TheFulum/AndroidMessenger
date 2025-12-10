@@ -12,7 +12,6 @@
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <!-- Добавлено для Android 14+ -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
@@ -30,7 +29,6 @@
             android:name=".UserProfileActivity"
             android:exported="false" />
 
-        <!-- ИСПРАВЛЕНО: Добавлен foregroundServiceType -->
         <service
             android:name=".notifications.MessageListenerService"
             android:exported="false"
@@ -41,6 +39,10 @@
             android:exported="false"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ForgotPasswordActivity"
+            android:exported="false" />
 
         <activity
             android:name=".RegisterActivity"
