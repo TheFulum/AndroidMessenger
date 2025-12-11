@@ -115,8 +115,6 @@ public class ProfileFragment extends Fragment {
 
     private void loadUserData() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
-
-        showLoader(true);
         currentUserId = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
         userRef = FirebaseDatabase.getInstance().getReference().child("Users").child(currentUserId);
 
@@ -130,7 +128,6 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (binding == null) {
-                    showLoader(false);
                     return;
                 }
 
@@ -154,7 +151,6 @@ public class ProfileFragment extends Fragment {
                     }
                 }
 
-                showLoader(false);
             }
 
             @Override
@@ -162,7 +158,6 @@ public class ProfileFragment extends Fragment {
                 if (getContext() != null) {
                     Toast.makeText(getContext(), "Ошибка загрузки данных", Toast.LENGTH_SHORT).show();
                 }
-                showLoader(false);
             }
         };
 
@@ -223,8 +218,6 @@ public class ProfileFragment extends Fragment {
     private void checkUsernameUniqueness(String username, AlertDialog dialog) {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
 
-        showLoader(true);
-
         Query query = FirebaseDatabase.getInstance()
                 .getReference("Users")
                 .orderByChild("username")
@@ -250,8 +243,6 @@ public class ProfileFragment extends Fragment {
                         Toast.makeText(getContext(), "Это имя уже занято", Toast.LENGTH_SHORT).show();
                     }
                 }
-
-                showLoader(false);
             }
 
             @Override
@@ -259,7 +250,6 @@ public class ProfileFragment extends Fragment {
                 if (getContext() != null) {
                     Toast.makeText(getContext(), "Ошибка проверки. Попробуйте позже", Toast.LENGTH_SHORT).show();
                 }
-                showLoader(false);
             }
         });
     }
@@ -344,27 +334,21 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
-        showLoader(true);
-
         userRef.child(field).setValue(value)
                 .addOnSuccessListener(aVoid -> {
                     if (getContext() != null) {
                         Toast.makeText(getContext(), "Данные обновлены", Toast.LENGTH_SHORT).show();
                     }
-                    showLoader(false);
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
                         Toast.makeText(getContext(), "Ошибка обновления", Toast.LENGTH_SHORT).show();
                     }
-                    showLoader(false);
                 });
     }
 
     private void uploadImageToCloudinary(Uri imageUri) {
         if (imageUri == null) return;
-
-        showLoader(true);
 
         MediaManager.get().upload(imageUri)
                 .option("folder", "messenger_profiles")
@@ -386,7 +370,6 @@ public class ProfileFragment extends Fragment {
                         if (getContext() != null) {
                             Toast.makeText(getContext(), "Фото загружено!", Toast.LENGTH_SHORT).show();
                         }
-                        showLoader(false);
                     }
 
                     @Override
@@ -394,7 +377,6 @@ public class ProfileFragment extends Fragment {
                         if (getContext() != null) {
                             Toast.makeText(getContext(), "Ошибка: " + error.getDescription(), Toast.LENGTH_SHORT).show();
                         }
-                        showLoader(false);
                     }
 
                     @Override
@@ -470,26 +452,9 @@ public class ProfileFragment extends Fragment {
         startActivity(intent);
     }
 
-    private void showLoader(boolean show) {
-        isLoading = show;
-
-        if (binding != null) {
-            binding.loaderBg.setVisibility(show ? View.VISIBLE : View.GONE);
-            binding.loader.setVisibility(show ? View.VISIBLE : View.GONE);
-
-            binding.profileImageView.setEnabled(!show);
-            binding.editUsernameBtn.setEnabled(!show);
-            binding.editPhoneBtn.setEnabled(!show);
-            binding.editBirthdayBtn.setEnabled(!show);
-            binding.logoutBtn.setEnabled(!show);
-        }
-    }
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // Гарантированно скрываем loader и отписываемся от слушателя
-        showLoader(false);
         if (userRef != null && userListener != null) {
             try {
                 userRef.removeEventListener(userListener);
