@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="32dp"
-        tools:context=".bottomnav.profile.ProfileFragment">
+        tools:context=".ui.fragments.profile.ProfileFragment">
 
         <ImageButton
             android:id="@+id/logout_btn"

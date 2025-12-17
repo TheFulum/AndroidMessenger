@@ -10,19 +10,20 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
-import com.example.messenger.ChatActivity;
+import com.example.messenger.ui.activities.ChatActivity;
 import com.example.messenger.R;
+import com.example.messenger.config.AppConfig;
 
 public class NotificationHelper {
 
     private static final String TAG = "NotificationHelper";
-    public static final String CHANNEL_ID = "messages_channel";
+    public static final String CHANNEL_ID = AppConfig.Notifications.CHANNEL_ID;
 
     public static void createChannel(Context ctx) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Message",
+                    AppConfig.Notifications.CHANNEL_ID,
+                    AppConfig.Notifications.CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_HIGH
             );
 

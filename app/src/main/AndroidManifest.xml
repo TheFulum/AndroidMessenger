@@ -26,34 +26,34 @@
         android:theme="@style/Theme.Messenger">
 
         <activity
-            android:name=".UserProfileActivity"
+            android:name=".ui.activities.UserProfileActivity"
             android:exported="false" />
 
         <service
-            android:name=".notifications.MessageListenerService"
+            android:name=".services.MessageListenerService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
         <activity
-            android:name=".ChatActivity"
+            android:name=".ui.activities.ChatActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ForgotPasswordActivity"
+            android:name=".ui.activities.ForgotPasswordActivity"
             android:exported="false" />
 
         <activity
-            android:name=".RegisterActivity"
+            android:name=".ui.activities.RegisterActivity"
             android:exported="false" />
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.activities.LoginActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.activities.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -62,11 +62,11 @@
         </activity>
 
         <activity
-            android:name=".SelectChatActivity"
+            android:name=".ui.activities.SelectChatActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MediaViewerActivity"
+            android:name=".ui.activities.MediaViewerActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             tools:ignore="DuplicateActivity" />

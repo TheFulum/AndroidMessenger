@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:colorBackground"
-    tools:context=".bottomnav.new_chat.NewChatFragment">
+    tools:context=".ui.fragments.new_chat.NewChatFragment">
 
     <EditText
         android:id="@+id/search_et"
