@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:padding="6dp">
 
-    <!-- Индикатор пересылки -->
     <TextView
         android:id="@+id/forwarded_tv"
         android:layout_width="wrap_content"
@@ -14,7 +13,7 @@
         android:layout_marginStart="12dp"
         android:layout_marginBottom="4dp"
         android:fontFamily="@font/ubuntu_light"
-        android:text="📩 Forwarded from Username"
+        android:text="@string/forwarded_from_username"
         android:textColor="#808080"
         android:textSize="12sp"
         android:textStyle="italic"
@@ -31,7 +30,6 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- НОВОЕ: Блок ответа -->
         <LinearLayout
             android:id="@+id/reply_block"
             android:layout_width="match_parent"
@@ -75,7 +73,7 @@
                     android:maxLines="1"
                     android:textColor="#666666"
                     android:textSize="12sp"
-                    tools:text="Исходное сообщение" />
+                    tools:text="The original message" />
 
             </LinearLayout>
 
@@ -93,7 +91,6 @@
 
     </LinearLayout>
 
-    <!-- Контейнер для метки "изменено" и даты снизу -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -105,7 +102,7 @@
             android:id="@+id/edited_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="изменено"
+            android:text="@string/edited"
             android:textSize="12sp"
             android:fontFamily="@font/ubuntu_light"
             android:textColor="#808080"

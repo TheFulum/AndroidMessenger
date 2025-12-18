@@ -13,7 +13,6 @@
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <!-- Кнопка назад -->
         <ImageButton
             android:id="@+id/back_btn"
             android:layout_width="40dp"
@@ -27,7 +26,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Аватар пользователя -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/profile_image_view"
             android:layout_width="150dp"
@@ -43,7 +41,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Имя пользователя -->
         <TextView
             android:id="@+id/username_tv"
             android:layout_width="wrap_content"
@@ -58,7 +55,6 @@
             app:layout_constraintTop_toBottomOf="@+id/profile_image_view"
             tools:text="Username" />
 
-        <!-- Статус онлайн -->
         <TextView
             android:id="@+id/status_tv"
             android:layout_width="wrap_content"
@@ -70,10 +66,9 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/username_tv"
-            tools:text="В сети"
+            tools:text="Online"
             tools:visibility="visible" />
 
-        <!-- Кнопка "Написать сообщение" -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/send_message_btn"
             android:layout_width="0dp"
@@ -81,7 +76,7 @@
             android:layout_marginStart="24dp"
             android:layout_marginTop="24dp"
             android:layout_marginEnd="24dp"
-            android:text="Написать сообщение"
+            android:text="@string/write_a_message"
             android:textSize="16sp"
             android:fontFamily="@font/ubuntu_light"
             app:cornerRadius="12dp"
@@ -91,7 +86,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/status_tv" />
 
-        <!-- Информация о пользователе -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -124,7 +118,7 @@
                     android:src="@drawable/email_icon"
                     android:layout_marginEnd="12dp"
                     app:tint="@color/primary"
-                    android:contentDescription="Email icon" />
+                    android:contentDescription="@string/email_icon" />
 
                 <TextView
                     android:id="@+id/email_tv"
@@ -137,7 +131,6 @@
                     tools:text="user@example.com" />
             </LinearLayout>
 
-            <!-- Телефон -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -161,7 +154,7 @@
                     android:src="@drawable/ic_phone"
                     android:layout_marginEnd="12dp"
                     app:tint="@color/primary"
-                    android:contentDescription="Phone icon" />
+                    android:contentDescription="@string/phone_icon" />
 
                 <TextView
                     android:id="@+id/phone_tv"
@@ -174,7 +167,6 @@
                     tools:text="+1234567890" />
             </LinearLayout>
 
-            <!-- Дата рождения -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -197,7 +189,7 @@
                     android:src="@drawable/ic_calendar"
                     android:layout_marginEnd="12dp"
                     app:tint="@color/primary"
-                    android:contentDescription="Calendar icon" />
+                    android:contentDescription="@string/calendar_icon" />
 
                 <TextView
                     android:id="@+id/birthday_tv"

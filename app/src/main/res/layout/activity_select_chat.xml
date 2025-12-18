@@ -6,7 +6,6 @@
     android:background="?android:colorBackground"
     android:fitsSystemWindows="true">
 
-    <!-- Верхняя панель -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/top_panel"
         android:layout_width="0dp"
@@ -33,7 +32,7 @@
             android:id="@+id/title_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Forward message"
+            android:text="@string/forward_message"
             android:textSize="19sp"
             android:textStyle="bold"
             android:textColor="?android:textColorPrimary"
@@ -43,12 +42,11 @@
             app:layout_constraintEnd_toEndOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Поле поиска -->
     <EditText
         android:id="@+id/search_et"
         android:layout_width="0dp"
         android:layout_height="50dp"
-        android:hint="Search chats..."
+        android:hint="@string/search_chats"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingTop="8dp"
@@ -69,7 +67,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Список чатов -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/chats_rv"
         android:layout_width="0dp"

@@ -61,7 +61,6 @@ public class Chat {
         this.blockedUsers = blockedUsers;
     }
 
-    // Проверка, заблокирован ли пользователь
     public boolean isUserBlocked(String userId) {
         if (blockedUsers == null) return false;
         Boolean blocked = blockedUsers.get(userId);

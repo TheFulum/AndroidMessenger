@@ -41,17 +41,14 @@ public class MainActivity extends AppCompatActivity {
 
         myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        // Запуск сервиса уведомлений
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(new Intent(this, MessageListenerService.class));
         } else {
             startService(new Intent(this, MessageListenerService.class));
         }
 
-        // Устанавливаем онлайн статус
         setUserOnlineStatus(true);
 
-        // Настройка навигации
         loadFragment(new ChatsFragment());
         binding.bottomNav.setOnItemSelectedListener(item -> {
             Fragment fragment = null;
@@ -68,7 +65,6 @@ public class MainActivity extends AppCompatActivity {
             return loadFragment(fragment);
         });
 
-        // Настройка badge для непрочитанных чатов
         setupUnreadChatsBadge();
     }
 
@@ -87,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
                     String user1 = chatSnap.child("user1").getValue(String.class);
                     String user2 = chatSnap.child("user2").getValue(String.class);
 
-                    // Проверяем, участвует ли текущий пользователь в чате
                     if (myUid.equals(user1) || myUid.equals(user2)) {
                         Long unreadCount = chatSnap.child("unreadCount")
                                 .child(myUid)
@@ -99,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                // Обновляем badge
                 if (unreadChatsCount > 0) {
                     badge.setNumber(unreadChatsCount);
                     badge.setVisible(true);
@@ -110,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                // Ошибка загрузки
             }
         };
 
@@ -165,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
 
-        // Отписываемся от слушателя непрочитанных чатов
         if (unreadChatsListener != null) {
             FirebaseDatabase.getInstance()
                     .getReference("Chats")

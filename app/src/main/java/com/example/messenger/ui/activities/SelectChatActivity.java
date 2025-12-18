@@ -38,7 +38,6 @@ public class SelectChatActivity extends AppCompatActivity {
     private String currentUsername;
     private String sourceChatId;
 
-    // Данные о файле
     private String fileUrl;
     private String fileType;
     private String fileName;
@@ -68,7 +67,6 @@ public class SelectChatActivity extends AppCompatActivity {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
 
-        // Получаем данные о файле
         fileUrl = getIntent().getStringExtra("fileUrl");
         fileType = getIntent().getStringExtra("fileType");
         fileName = getIntent().getStringExtra("fileName");
@@ -76,7 +74,6 @@ public class SelectChatActivity extends AppCompatActivity {
         voiceDuration = getIntent().getLongExtra("voiceDuration", 0);
         hasFile = fileUrl != null && !fileUrl.isEmpty();
 
-        // НОВОЕ: Получаем данные о контакте
         shareContactUserId = getIntent().getStringExtra("shareContactUserId");
         shareContactUsername = getIntent().getStringExtra("shareContactUsername");
         isSharingContact = shareContactUserId != null && !shareContactUserId.isEmpty();
@@ -311,7 +308,6 @@ public class SelectChatActivity extends AppCompatActivity {
         isForwarding = true;
         binding.backBtn.setEnabled(false);
 
-        // НОВОЕ: Разные сообщения для контакта и обычного контента
         String loadingMessage = isSharingContact ? "Sharing contact..." : "Forwarding...";
         Toast.makeText(this, loadingMessage, Toast.LENGTH_SHORT).show();
 
@@ -320,7 +316,6 @@ public class SelectChatActivity extends AppCompatActivity {
 
         HashMap<String, Object> msg = new HashMap<>();
 
-        // НОВОЕ: Если пересылаем контакт
         if (isSharingContact) {
             msg.put("text", "");
             msg.put("ownerId", currentUserId);
@@ -330,7 +325,6 @@ public class SelectChatActivity extends AppCompatActivity {
             msg.put("contactUsername", shareContactUsername);
             msg.put("read", false);
         } else {
-            // Обычная пересылка
             String forwardedText;
             if (hasFile) {
                 if (messageText != null && !messageText.isEmpty()) {
@@ -382,10 +376,8 @@ public class SelectChatActivity extends AppCompatActivity {
         HashMap<String, Object> update = new HashMap<>();
         update.put("lastMessageTime", timestamp);
 
-        // Формируем превью
         String preview;
 
-        // НОВОЕ: Обработка контакта
         if (isSharingContact) {
             preview = "👤 Contact: " + shareContactUsername;
         } else if (hasFile) {
@@ -425,7 +417,6 @@ public class SelectChatActivity extends AppCompatActivity {
         HashMap<String, Object> update = new HashMap<>();
         update.put("lastMessageTime", timestamp);
 
-        // Формируем превью
         String preview;
         if (hasFile) {
             if ("image".equals(fileType)) {

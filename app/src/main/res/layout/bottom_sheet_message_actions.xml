@@ -18,12 +18,12 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_forward"
-            android:contentDescription="Переслать" />
+            android:contentDescription="@string/forward" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Переслать"
+            android:text="@string/forward"
             android:textSize="16sp"
             android:layout_marginStart="16dp"
             android:fontFamily="@font/ubuntu_light" />
@@ -43,12 +43,12 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_reply"
-            android:contentDescription="Ответить" />
+            android:contentDescription="@string/reply" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ответить"
+            android:text="@string/reply"
             android:textSize="16sp"
             android:layout_marginStart="16dp"
             android:fontFamily="@font/ubuntu_light" />
@@ -68,12 +68,12 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_edit"
-            android:contentDescription="Изменить" />
+            android:contentDescription="@string/edit" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Изменить"
+            android:text="@string/edit"
             android:textSize="16sp"
             android:layout_marginStart="16dp"
             android:fontFamily="@font/ubuntu_light" />
@@ -93,12 +93,12 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_delete"
-            android:contentDescription="Удалить" />
+            android:contentDescription="@string/delete" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Удалить"
+            android:text="@string/delete"
             android:textSize="16sp"
             android:textColor="#F44336"
             android:layout_marginStart="16dp"

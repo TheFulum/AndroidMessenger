@@ -62,19 +62,16 @@ public class NewChatFragment extends Fragment {
         binding.searchEt.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                // Не используем
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 updateClearIcon(s.length() > 0);
-                // Фильтруем при КАЖДОМ символе!
                 filterUsers(s.toString());
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-                // Не используем
             }
         });
 
@@ -119,10 +116,6 @@ public class NewChatFragment extends Fragment {
         return touchX >= clearIconStart;
     }
 
-    /**
-     * Фильтрует и СРАЗУ обновляет список
-     * Регистронезависимый поиск
-     */
     private void filterUsers(String query) {
         String searchQuery = query.toLowerCase(Locale.ROOT).trim();
 
@@ -138,7 +131,6 @@ public class NewChatFragment extends Fragment {
             }
         }
 
-        // Обновление UI!
         adapter.notifyDataSetChanged();
     }
 
@@ -173,7 +165,6 @@ public class NewChatFragment extends Fragment {
                             String username = snap.child("username").getValue(String.class);
                             if (username == null) continue;
 
-                            // ← ДОБАВЛЕНО: загружаем profileImageUrl
                             String profileImageUrl = snap.child("profileImageUrl").getValue(String.class);
 
                             allUsers.add(new User(uid, username, profileImageUrl));
@@ -195,7 +186,7 @@ public class NewChatFragment extends Fragment {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot chatsSnapshot) {
 
-                        if (getView() == null || binding == null) return; // 🔹 проверка
+                        if (getView() == null || binding == null) return;
 
                         ArrayList<User> usersWithoutChats = new ArrayList<>();
 
@@ -211,7 +202,6 @@ public class NewChatFragment extends Fragment {
                         allUsers.clear();
                         allUsers.addAll(usersWithoutChats);
 
-                        // Применяем текущий фильтр поиска безопасно
                         String query = binding.searchEt != null ? binding.searchEt.getText().toString() : "";
                         filterUsers(query);
                     }

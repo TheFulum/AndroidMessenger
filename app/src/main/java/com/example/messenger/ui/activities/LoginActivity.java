@@ -36,11 +36,10 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
-            showLoader(true); // Пока проверяем
-            checkEmailVerification(currentUser); // Переиспользуем метод, он сам navigate или покажет диалог
-            return; // Не продолжаем setup UI, если уже logged
+            showLoader(true);
+            checkEmailVerification(currentUser);
+            return;
         }
-        // Если не logged — setup UI
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         EdgeToEdge.enable(this);
         setContentView(binding.getRoot());
@@ -85,7 +84,6 @@ public class LoginActivity extends AppCompatActivity {
                 startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
         });
 
-        // 🔥 НОВАЯ КНОПКА: Forgot Password
         binding.forgotPasswordTv.setOnClickListener(v -> {
             if (!isLoading)
                 startActivity(new Intent(LoginActivity.this, ForgotPasswordActivity.class));
@@ -124,17 +122,17 @@ public class LoginActivity extends AppCompatActivity {
         String password = binding.passwordEt.getText().toString().trim();
 
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Заполните все поля", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Fill in all the fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            Toast.makeText(this, "Некорректный email", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Incorrect email address", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (password.length() < 6) {
-            Toast.makeText(this, "Пароль должен быть не менее 6 символов", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "The password must be at least 6 characters long.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -147,24 +145,23 @@ public class LoginActivity extends AppCompatActivity {
                         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
                         if (user != null) {
-                            // 🔥 ПРОВЕРЯЕМ ВЕРИФИКАЦИЮ EMAIL
                             checkEmailVerification(user);
                         }
                     } else {
                         showLoader(false);
                         Exception e = task.getException();
 
-                        String errorMessage = "Ошибка входа";
+                        String errorMessage = "Login error";
                         if (e != null && e.getMessage() != null) {
                             if (e.getMessage().contains("disabled")) {
-                                errorMessage = "Аккаунт заблокирован администрацией";
+                                errorMessage = "The account has been blocked by the administrator";
                             } else if (e.getMessage().contains("no user record") ||
                                     e.getMessage().contains("invalid-credential")) {
-                                errorMessage = "Неверный email или пароль";
+                                errorMessage = "Invalid email or password";
                             } else if (e.getMessage().contains("wrong-password")) {
-                                errorMessage = "Неверный пароль";
+                                errorMessage = "Invalid password";
                             } else if (e.getMessage().contains("network error")) {
-                                errorMessage = "Ошибка сети. Проверьте подключение";
+                                errorMessage = "Network error. Check the connection";
                             } else {
                                 errorMessage = e.getMessage();
                             }
@@ -189,19 +186,19 @@ public class LoginActivity extends AppCompatActivity {
                 }
             } else {
                 showLoader(false);
-                Toast.makeText(this, "Ошибка проверки статуса верификации", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Verification status verification error", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void showEmailNotVerifiedDialog(FirebaseUser user) {
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Email не подтвержден")
-                .setMessage("Ваш email еще не подтвержден. Проверьте почту и перейдите по ссылке в письме.\n\nЕсли письмо не пришло, мы можем отправить его повторно.")
-                .setPositiveButton("Отправить снова", (dialog, which) -> {
+                .setTitle("Email has not been verified")
+                .setMessage("Your email has not been confirmed yet. Check your email")
+                .setPositiveButton("Send again", (dialog, which) -> {
                     resendVerificationEmail(user);
                 })
-                .setNegativeButton("Позже", (dialog, which) -> {
+                .setNegativeButton("Later", (dialog, which) -> {
                     FirebaseAuth.getInstance().signOut();
                     dialog.dismiss();
                 })
@@ -218,11 +215,11 @@ public class LoginActivity extends AppCompatActivity {
 
                     if (task.isSuccessful()) {
                         Toast.makeText(this,
-                                "✅ Письмо отправлено! Проверьте почту",
+                                "✅ The email has been sent! Check your email",
                                 Toast.LENGTH_LONG).show();
                     } else {
                         Toast.makeText(this,
-                                "Не удалось отправить письмо. Попробуйте позже",
+                                "Couldn't send email. Try again later",
                                 Toast.LENGTH_SHORT).show();
                     }
 
@@ -238,8 +235,7 @@ public class LoginActivity extends AppCompatActivity {
                 .setValue(verified)
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) {
-                        // Можно тост или лог, но не критично — не стопим navigate
-                        Toast.makeText(this, "Ошибка обновления статуса верификации в БД", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Error updating the verification status in the database", Toast.LENGTH_SHORT).show();
                     }
                 });
     }

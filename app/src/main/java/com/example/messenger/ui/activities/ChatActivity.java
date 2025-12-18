@@ -69,7 +69,6 @@ public class ChatActivity extends AppCompatActivity {
     private boolean isAtBottom = true;
     private int newMessagesCount = 0;
 
-    // Голосовые сообщения
     private MediaRecorder mediaRecorder;
     private String voiceFilePath;
     private boolean isRecording = false;
@@ -81,6 +80,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private ValueEventListener userStatusListener;
     private Message replyingToMessage = null;
+    private Message editingMessage = null;
     private String replyingToOwnerName = null;
 
     @Override
@@ -89,7 +89,6 @@ public class ChatActivity extends AppCompatActivity {
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Регистрация launcher
         filePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
                 uri -> {
@@ -105,7 +104,7 @@ public class ChatActivity extends AppCompatActivity {
                 : null;
 
         if (chatId == null || currentUserId == null) {
-            Toast.makeText(this, "Ошибка загрузки чата", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error loading the chat", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -170,7 +169,6 @@ public class ChatActivity extends AppCompatActivity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 updateSendButtonState();
 
-                // Переключаем между кнопкой отправки и микрофоном
                 if (s.length() > 0) {
                     binding.sendMessageBtn.setVisibility(View.VISIBLE);
                     binding.voiceRecordBtn.setVisibility(View.GONE);
@@ -192,33 +190,29 @@ public class ChatActivity extends AppCompatActivity {
             return false;
         });
 
-        // Автоскролл при фокусе на EditText (когда открывается клавиатура)
         binding.messageEt.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 binding.messagesRv.postDelayed(this::scrollToBottom, 300);
             }
         });
 
-        // Кнопка scroll to bottom
         binding.scrollToBottomFab.setOnClickListener(v -> {
             scrollToBottom();
             newMessagesCount = 0;
         });
 
-        // Голосовые сообщения
         binding.voiceRecordBtn.setOnClickListener(v -> startVoiceRecording());
         binding.cancelRecordingBtn.setOnClickListener(v -> cancelVoiceRecording());
         binding.sendVoiceBtn.setOnClickListener(v -> sendVoiceMessage());
 
-        // Слушатель скролла для показа/скрытия кнопки
         setupScrollListener();
     }
 
     private void showFileTypeDialog() {
-        String[] options = {"📷 Фото", "🎥 Видео", "📄 Документ"};
+        String[] options = {"📷 Photo", "🎥 Video", "📄 Document"};
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Выберите тип файла")
+                .setTitle("Select the file type")
                 .setItems(options, (dialog, which) -> {
                     if (which == 0) {
                         filePickerLauncher.launch("image/*");
@@ -237,7 +231,7 @@ public class ChatActivity extends AppCompatActivity {
         String mimeType = getContentResolver().getType(uri);
 
         if (fileName == null) {
-            Toast.makeText(this, "Ошибка получения имени файла", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error getting the file name", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -246,7 +240,7 @@ public class ChatActivity extends AppCompatActivity {
                     AppConfig.getMaxFileSizeForType(mimeType)
             );
             Toast.makeText(this,
-                    "Файл слишком большой. Максимум: " + maxSize,
+                    "The file over max size. Max size: " + maxSize,
                     Toast.LENGTH_LONG).show();
             return;
         }
@@ -260,7 +254,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
 
-        // Для видео получаем длительность
         long videoDuration = 0;
         if (fileType.equals("video")) {
             videoDuration = getVideoDuration(uri);
@@ -298,7 +291,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private void uploadFileToCloudinary(Uri fileUri, String fileName, long fileSize, String fileType, long videoDuration) {
         if (isUploading) {
-            Toast.makeText(this, "Дождитесь завершения предыдущей загрузки", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Wait for the previous download to finish", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -308,7 +301,7 @@ public class ChatActivity extends AppCompatActivity {
         binding.uploadProgressContainer.setVisibility(View.VISIBLE);
         binding.uploadFileNameTv.setText(fileName);
         binding.uploadProgressBar.setProgress(0);
-        binding.uploadProgressTv.setText("Загрузка... 0%");
+        binding.uploadProgressTv.setText("Loading... 0%");
 
         binding.attachFileBtn.setEnabled(false);
         binding.sendMessageBtn.setEnabled(false);
@@ -337,7 +330,7 @@ public class ChatActivity extends AppCompatActivity {
                         int progress = (int) ((bytes * 100) / totalBytes);
                         runOnUiThread(() -> {
                             binding.uploadProgressBar.setProgress(progress);
-                            binding.uploadProgressTv.setText("Загрузка... " + progress + "%");
+                            binding.uploadProgressTv.setText("Loading... " + progress + "%");
                         });
                     }
 
@@ -364,7 +357,7 @@ public class ChatActivity extends AppCompatActivity {
                             updateSendButtonState();
 
                             Toast.makeText(ChatActivity.this,
-                                    "Ошибка загрузки: " + error.getDescription(),
+                                    "Download error: " + error.getDescription(),
                                     Toast.LENGTH_SHORT).show();
                         });
                     }
@@ -376,7 +369,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendMessageWithFile(String fileUrl, String fileName, long fileSize, String fileType, long videoDuration) {
-        // НОВОЕ: Проверяем блокировку перед отправкой файла
         checkIfCanSendMessages(new OnCheckCompleteListener() {
             @Override
             public void onResult(boolean canSend, String errorMessage) {
@@ -385,7 +377,6 @@ public class ChatActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Продолжаем отправку
                 long now = System.currentTimeMillis();
                 SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
@@ -415,9 +406,9 @@ public class ChatActivity extends AppCompatActivity {
                         .addOnSuccessListener(aVoid -> {
                             String preview;
                             if (fileType.equals("image")) {
-                                preview = "📷 Фото";
+                                preview = "📷 Photo";
                             } else if (fileType.equals("video")) {
-                                preview = "🎥 Видео";
+                                preview = "🎥 Video";
                             } else {
                                 preview = "📄 " + fileName;
                             }
@@ -425,10 +416,10 @@ public class ChatActivity extends AppCompatActivity {
                             incrementUnreadCount();
                             binding.messageEt.setText("");
                             scrollToBottom();
-                            Toast.makeText(ChatActivity.this, "Файл отправлен", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, "The file has been sent", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
-                            Toast.makeText(ChatActivity.this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, "Sending error", Toast.LENGTH_SHORT).show();
                         });
             }
         });
@@ -440,7 +431,6 @@ public class ChatActivity extends AppCompatActivity {
         binding.sendMessageBtn.setAlpha((hasText && !isUploading) ? 1.0f : 0.5f);
     }
 
-    // Добавьте этот метод
     private void incrementUnreadCount() {
         if (receiverId == null) return;
 
@@ -475,10 +465,8 @@ public class ChatActivity extends AppCompatActivity {
                     int lastVisiblePosition = layoutManager.findLastVisibleItemPosition();
                     int totalItemCount = layoutManager.getItemCount();
 
-                    // Проверяем, находимся ли мы внизу списка
                     isAtBottom = (lastVisiblePosition >= totalItemCount - 2);
 
-                    // Показываем/скрываем кнопку
                     if (isAtBottom) {
                         binding.scrollToBottomFab.setVisibility(View.GONE);
                         newMessagesCount = 0;
@@ -512,7 +500,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
-                    binding.chatUsernameTv.setText("Чат не найден");
+                    binding.chatUsernameTv.setText("The chat was not found");
                     return;
                 }
 
@@ -526,7 +514,7 @@ public class ChatActivity extends AppCompatActivity {
                 }
 
                 if (receiverId == null) {
-                    binding.chatUsernameTv.setText("Неизвестный");
+                    binding.chatUsernameTv.setText("Unknown");
                     return;
                 }
 
@@ -535,7 +523,7 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                binding.chatUsernameTv.setText("Ошибка");
+                binding.chatUsernameTv.setText("Error");
             }
         });
     }
@@ -545,7 +533,6 @@ public class ChatActivity extends AppCompatActivity {
                 .getReference("Users")
                 .child(uid);
 
-        // Используем addValueEventListener для real-time обновлений статуса
         userStatusListener = new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -554,9 +541,8 @@ public class ChatActivity extends AppCompatActivity {
                 Boolean isOnline = snapshot.child("online").getValue(Boolean.class);
                 Long lastSeen = snapshot.child("lastSeen").getValue(Long.class);
 
-                binding.chatUsernameTv.setText(username != null ? username : "Пользователь");
+                binding.chatUsernameTv.setText(username != null ? username : "User");
 
-                // Обновляем статус пользователя
                 updateUserStatus(isOnline, lastSeen);
 
                 if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
@@ -566,7 +552,7 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                binding.chatUsernameTv.setText("Ошибка");
+                binding.chatUsernameTv.setText("Error");
             }
         };
 
@@ -575,12 +561,12 @@ public class ChatActivity extends AppCompatActivity {
 
     private void updateUserStatus(Boolean isOnline, Long lastSeen) {
         if (isOnline != null && isOnline) {
-            binding.chatStatusTv.setText("В сети");
+            binding.chatStatusTv.setText("Online");
             binding.chatStatusTv.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
             binding.chatStatusTv.setVisibility(View.VISIBLE);
         } else if (lastSeen != null && lastSeen > 0) {
             String timeAgo = getTimeAgo(lastSeen);
-            binding.chatStatusTv.setText("Был(а) в сети " + timeAgo);
+            binding.chatStatusTv.setText("Was online " + timeAgo);
             binding.chatStatusTv.setTextColor(getResources().getColor(android.R.color.darker_gray));
             binding.chatStatusTv.setVisibility(View.VISIBLE);
         } else {
@@ -599,13 +585,13 @@ public class ChatActivity extends AppCompatActivity {
         long days = hours / 24;
 
         if (seconds < 60) {
-            return "только что";
+            return "just now";
         } else if (minutes < 60) {
-            return minutes + " мин. назад";
+            return minutes + " min. ago";
         } else if (hours < 24) {
-            return hours + " ч. назад";
+            return hours + " h. ago";
         } else if (days < 7) {
-            return days + " д. назад";
+            return days + " d. back";
         } else {
             SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
             return sdf.format(new Date(timestamp));
@@ -654,10 +640,8 @@ public class ChatActivity extends AppCompatActivity {
                     String replyToOwnerName = msgSnapshot.child("replyToOwnerName").getValue(String.class);
                     String replyToFileType = msgSnapshot.child("replyToFileType").getValue(String.class);
 
-                    // Загружаем статус прочитанности
                     Boolean read = msgSnapshot.child("read").getValue(Boolean.class);
 
-                    // НОВОЕ: Загружаем данные контакта
                     String contactUserId = msgSnapshot.child("contactUserId").getValue(String.class);
                     String contactUsername = msgSnapshot.child("contactUsername").getValue(String.class);
 
@@ -692,10 +676,8 @@ public class ChatActivity extends AppCompatActivity {
                             message.setReplyToFileType(replyToFileType);
                         }
 
-                        // Устанавливаем статус прочитанности
                         message.setRead(read != null && read);
 
-                        // НОВОЕ: Устанавливаем данные контакта
                         if (contactUserId != null && !contactUserId.isEmpty()) {
                             message.setContactUserId(contactUserId);
                             message.setContactUsername(contactUsername);
@@ -707,13 +689,12 @@ public class ChatActivity extends AppCompatActivity {
 
                 setupRecyclerView(messages);
 
-                // Отмечаем сообщения как прочитанные при открытии чата
                 markMessagesAsRead();
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ChatActivity.this, "Ошибка загрузки сообщений", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ChatActivity.this, "Error loading messages", Toast.LENGTH_SHORT).show();
             }
         };
 
@@ -737,14 +718,12 @@ public class ChatActivity extends AppCompatActivity {
             messagesAdapter.updateMessages(messages);
         }
 
-        // Автоскролл только если пользователь был внизу или это первая загрузка
         if (messagesAdapter.getItemCount() > 0) {
             if (wasAtBottom || previousItemCount == 0) {
                 binding.messagesRv.post(() ->
                         binding.messagesRv.smoothScrollToPosition(messagesAdapter.getItemCount() - 1)
                 );
             } else {
-                // Если не внизу - увеличиваем счетчик новых сообщений
                 int newCount = messagesAdapter.getItemCount() - previousItemCount;
                 if (newCount > 0) {
                     newMessagesCount += newCount;
@@ -762,7 +741,6 @@ public class ChatActivity extends AppCompatActivity {
             messagesRef.removeEventListener(messagesListener);
         }
 
-        // ВАЖНО: Отписываемся от слушателя статуса
         if (receiverId != null && userStatusListener != null) {
             FirebaseDatabase.getInstance()
                     .getReference("Users")
@@ -777,10 +755,7 @@ public class ChatActivity extends AppCompatActivity {
         binding = null;
     }
 
-    // ========== Голосовые сообщения ==========
-
     private void startVoiceRecording() {
-        // Проверяем разрешение на запись
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -789,7 +764,6 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         try {
-            // Создаем файл для записи
             voiceFilePath = getCacheDir().getAbsolutePath() + "/voice_" + System.currentTimeMillis() + ".m4a";
 
             mediaRecorder = new MediaRecorder();
@@ -804,16 +778,14 @@ public class ChatActivity extends AppCompatActivity {
             isRecording = true;
             recordingStartTime = System.currentTimeMillis();
 
-            // Показываем UI записи
             binding.messageInputContainer.setVisibility(View.GONE);
             binding.voiceRecordingContainer.setVisibility(View.VISIBLE);
 
-            // Запускаем таймер
             startRecordingTimer();
 
         } catch (Exception e) {
             e.printStackTrace();
-            Toast.makeText(this, "Ошибка записи: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Recording error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -850,7 +822,6 @@ public class ChatActivity extends AppCompatActivity {
         isRecording = false;
         recordingHandler.removeCallbacks(recordingRunnable);
 
-        // Возвращаем обычный UI
         binding.voiceRecordingContainer.setVisibility(View.GONE);
         binding.messageInputContainer.setVisibility(View.VISIBLE);
     }
@@ -858,13 +829,12 @@ public class ChatActivity extends AppCompatActivity {
     private void cancelVoiceRecording() {
         stopRecording();
 
-        // Удаляем файл
         if (voiceFilePath != null) {
             new java.io.File(voiceFilePath).delete();
             voiceFilePath = null;
         }
 
-        Toast.makeText(this, "Запись отменена", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Recording cancelled", Toast.LENGTH_SHORT).show();
     }
 
     private void sendVoiceMessage() {
@@ -874,15 +844,14 @@ public class ChatActivity extends AppCompatActivity {
 
         long duration = System.currentTimeMillis() - recordingStartTime;
 
-        // Загружаем на Cloudinary
         uploadVoiceToCloudinary(Uri.fromFile(new java.io.File(voiceFilePath)), duration);
     }
 
     private void uploadVoiceToCloudinary(Uri voiceUri, long duration) {
         binding.uploadProgressContainer.setVisibility(View.VISIBLE);
-        binding.uploadFileNameTv.setText("Голосовое сообщение");
+        binding.uploadFileNameTv.setText("Voice message");
         binding.uploadProgressBar.setProgress(0);
-        binding.uploadProgressTv.setText("Загрузка... 0%");
+        binding.uploadProgressTv.setText("Loading... 0%");
 
         binding.attachFileBtn.setEnabled(false);
         binding.voiceRecordBtn.setEnabled(false);
@@ -902,7 +871,7 @@ public class ChatActivity extends AppCompatActivity {
                         int progress = (int) ((bytes * 100) / totalBytes);
                         runOnUiThread(() -> {
                             binding.uploadProgressBar.setProgress(progress);
-                            binding.uploadProgressTv.setText("Загрузка... " + progress + "%");
+                            binding.uploadProgressTv.setText("Loading... " + progress + "%");
                         });
                     }
 
@@ -917,7 +886,6 @@ public class ChatActivity extends AppCompatActivity {
 
                             sendVoiceMessageToFirebase(fileUrl, duration);
 
-                            // Удаляем локальный файл
                             if (voiceFilePath != null) {
                                 new java.io.File(voiceFilePath).delete();
                                 voiceFilePath = null;
@@ -933,10 +901,9 @@ public class ChatActivity extends AppCompatActivity {
                             binding.voiceRecordBtn.setEnabled(true);
 
                             Toast.makeText(ChatActivity.this,
-                                    "Ошибка загрузки: " + error.getDescription(),
+                                    "Download error: " + error.getDescription(),
                                     Toast.LENGTH_SHORT).show();
 
-                            // Удаляем локальный файл
                             if (voiceFilePath != null) {
                                 new java.io.File(voiceFilePath).delete();
                                 voiceFilePath = null;
@@ -951,7 +918,6 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendVoiceMessageToFirebase(String voiceUrl, long duration) {
-        // НОВОЕ: Проверяем блокировку
         checkIfCanSendMessages(new OnCheckCompleteListener() {
             @Override
             public void onResult(boolean canSend, String errorMessage) {
@@ -960,7 +926,6 @@ public class ChatActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Продолжаем отправку
                 long now = System.currentTimeMillis();
                 SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
 
@@ -983,13 +948,13 @@ public class ChatActivity extends AppCompatActivity {
 
                 msgRef.setValue(msg)
                         .addOnSuccessListener(aVoid -> {
-                            updateLastMessage("🎤 Голосовое сообщение", now);
+                            updateLastMessage("🎤 Voice message", now);
                             incrementUnreadCount();
                             scrollToBottom();
-                            Toast.makeText(ChatActivity.this, "Голосовое сообщение отправлено", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, "The voice message has been sent", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
-                            Toast.makeText(ChatActivity.this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, "Sending error", Toast.LENGTH_SHORT).show();
                         });
             }
         });
@@ -1015,15 +980,14 @@ public class ChatActivity extends AppCompatActivity {
         binding.replyContainer.setVisibility(View.VISIBLE);
         binding.replyOwnerNameTv.setText(ownerName);
 
-        // Определяем текст для отображения
         String displayText;
         if (message.hasFile()) {
             if (message.isImage()) {
-                displayText = "📷 Фото";
+                displayText = "📷 Photo";
             } else if (message.isVideo()) {
-                displayText = "🎥 Видео";
+                displayText = "🎥 Video";
             } else if (message.isVoice()) {
-                displayText = "🎤 Голосовое сообщение";
+                displayText = "🎤 Voice message";
             } else {
                 displayText = "📄 " + message.getFileName();
             }
@@ -1033,11 +997,9 @@ public class ChatActivity extends AppCompatActivity {
 
         binding.replyTextTv.setText(displayText);
 
-        // Фокус на поле ввода
         binding.messageEt.requestFocus();
     }
 
-    // Отменить ответ
     private void cancelReply() {
         replyingToMessage = null;
         replyingToOwnerName = null;
@@ -1046,9 +1008,17 @@ public class ChatActivity extends AppCompatActivity {
 
     private void sendMessage() {
         String text = binding.messageEt.getText().toString().trim();
-        if (text.isEmpty()) return;
+
+        if (editingMessage == null && text.isEmpty()) {
+            return;
+        }
 
         binding.sendMessageBtn.setEnabled(false);
+
+        if (editingMessage != null) {
+            updateMessageText(editingMessage, text);
+            return;
+        }
 
         checkIfCanSendMessages(new OnCheckCompleteListener() {
             @Override
@@ -1068,7 +1038,6 @@ public class ChatActivity extends AppCompatActivity {
                 msg.put("date", dateFormat.format(new Date()));
                 msg.put("timestamp", now);
 
-                // Добавляем данные об ответе
                 if (replyingToMessage != null) {
                     msg.put("replyToMessageId", replyingToMessage.getId());
                     msg.put("replyToOwnerName", replyingToOwnerName);
@@ -1101,7 +1070,7 @@ public class ChatActivity extends AppCompatActivity {
                             scrollToBottom();
                         })
                         .addOnFailureListener(e -> {
-                            Toast.makeText(ChatActivity.this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(ChatActivity.this, "Sending error", Toast.LENGTH_SHORT).show();
                             binding.sendMessageBtn.setEnabled(true);
                         });
             }
@@ -1111,10 +1080,8 @@ public class ChatActivity extends AppCompatActivity {
     public void scrollToMessage(int position) {
         if (binding == null || binding.messagesRv == null) return;
 
-        // Плавная прокрутка
         binding.messagesRv.smoothScrollToPosition(position);
 
-        // Скрываем кнопку "вниз"
         binding.scrollToBottomFab.setVisibility(View.GONE);
 
         isAtBottom = true;
@@ -1134,7 +1101,6 @@ public class ChatActivity extends AppCompatActivity {
                     String ownerId = msgSnapshot.child("ownerId").getValue(String.class);
                     Boolean isRead = msgSnapshot.child("read").getValue(Boolean.class);
 
-                    // Отмечаем только чужие непрочитанные сообщения
                     if (ownerId != null && !ownerId.equals(currentUserId)
                             && (isRead == null || !isRead)) {
                         msgSnapshot.getRef().child("read").setValue(true);
@@ -1155,7 +1121,6 @@ public class ChatActivity extends AppCompatActivity {
         LinearLayout actionShareContact = sheetView.findViewById(R.id.action_share_contact);
         LinearLayout actionOpenProfile = sheetView.findViewById(R.id.action_open_profile);
 
-        // НОВОЕ: Добавляем кнопку блокировки
         LinearLayout actionBlockUser = sheetView.findViewById(R.id.action_block_user);
         TextView blockSubtitle = sheetView.findViewById(R.id.block_subtitle_tv);
         ImageView blockIcon = sheetView.findViewById(R.id.block_icon);
@@ -1164,14 +1129,12 @@ public class ChatActivity extends AppCompatActivity {
         TextView notificationSubtitle = sheetView.findViewById(R.id.notification_subtitle_tv);
         ImageView notificationIcon = sheetView.findViewById(R.id.notification_icon);
 
-        // Загружаем текущее состояние уведомлений
         loadNotificationStatus(notificationSwitch, notificationSubtitle, notificationIcon);
 
-        // НОВОЕ: Загружаем статус блокировки
         if (actionBlockUser != null) {
             loadBlockStatus(isBlocked -> {
                 if (blockSubtitle != null) {
-                    blockSubtitle.setText(isBlocked ? "Разблокировать" : "Заблокировать");
+                    blockSubtitle.setText(isBlocked ? "Unblock" : "Block");
                 }
                 if (blockIcon != null) {
                     blockIcon.setImageResource(
@@ -1186,10 +1149,9 @@ public class ChatActivity extends AppCompatActivity {
             });
         }
 
-        // Переключатель уведомлений
         notificationSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             toggleChatNotifications(isChecked);
-            notificationSubtitle.setText(isChecked ? "Включены" : "Отключены");
+            notificationSubtitle.setText(isChecked ? "Enabled" : "Disabled");
             notificationIcon.setImageResource(
                     isChecked ? R.drawable.ic_notifications : R.drawable.ic_notifications_off
             );
@@ -1199,13 +1161,11 @@ public class ChatActivity extends AppCompatActivity {
             notificationSwitch.setChecked(!notificationSwitch.isChecked());
         });
 
-        // Поделиться контактом
         actionShareContact.setOnClickListener(v -> {
             bottomSheet.dismiss();
             shareContact();
         });
 
-        // Открыть профиль
         actionOpenProfile.setOnClickListener(v -> {
             bottomSheet.dismiss();
             if (receiverId != null) {
@@ -1229,7 +1189,7 @@ public class ChatActivity extends AppCompatActivity {
                 .child(currentUserId)
                 .setValue(!enabled)
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Ошибка изменения настроек", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error changing settings", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -1249,7 +1209,7 @@ public class ChatActivity extends AppCompatActivity {
                         boolean notificationsEnabled = isMuted == null || !isMuted;
 
                         switchCompat.setChecked(notificationsEnabled);
-                        subtitle.setText(notificationsEnabled ? "Включены" : "Отключены");
+                        subtitle.setText(notificationsEnabled ? "Enabled" : "Disabled");
                         icon.setImageResource(
                                 notificationsEnabled ? R.drawable.ic_notifications : R.drawable.ic_notifications_off
                         );
@@ -1263,7 +1223,6 @@ public class ChatActivity extends AppCompatActivity {
     private void shareContact() {
         if (receiverId == null) return;
 
-        // Показываем диалог выбора чата
         Intent intent = new Intent(this, SelectChatActivity.class);
         intent.putExtra("shareContactUserId", receiverId);
         intent.putExtra("shareContactUsername", binding.chatUsernameTv.getText().toString());
@@ -1292,25 +1251,63 @@ public class ChatActivity extends AppCompatActivity {
 
         msgRef.setValue(msg)
                 .addOnSuccessListener(aVoid -> {
-                    updateLastMessage("👤 Контакт: " + contactUsername, now);
+                    updateLastMessage("👤 Contact: " + contactUsername, now);
                     incrementUnreadCount();
                     scrollToBottom();
-                    Toast.makeText(this, "Контакт отправлен", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "The contact has been sent", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Sending error", Toast.LENGTH_SHORT).show();
                 });
     }
 
     private void setupChatMenu() {
         binding.menuBtn.setOnClickListener(v -> showChatSettingsSheet());
+        binding.closeReplyBtn.setOnClickListener(v -> {
+            cancelReply();
+            cancelEdit();
+        });
+    }
 
-        binding.closeReplyBtn.setOnClickListener(v -> cancelReply());
+    public void showEditBlock(Message message) {
+        editingMessage = message;
+        replyingToMessage = null;
+
+        binding.replyContainer.setVisibility(View.VISIBLE);
+        binding.replyOwnerNameTv.setText("Edit message");
+
+        String previewText;
+        if (message.hasFile()) {
+            if (message.isImage()) {
+                previewText = "📷 Photo" + (message.getText().isEmpty() ? "" : ": " + message.getText());
+            } else if (message.isVideo()) {
+                previewText = "🎥 Video" + (message.getText().isEmpty() ? "" : ": " + message.getText());
+            } else if (message.isDocument()) {
+                previewText = "📄 " + message.getFileName();
+            } else {
+                previewText = message.getText();
+            }
+        } else {
+            previewText = message.getText();
+        }
+
+        binding.replyTextTv.setText(previewText);
+
+        String currentText = message.getText() != null ? message.getText() : "";
+        binding.messageEt.setText(currentText);
+        binding.messageEt.setSelection(binding.messageEt.getText().length());
+        binding.messageEt.requestFocus();
+    }
+
+    private void cancelEdit() {
+        editingMessage = null;
+        binding.replyContainer.setVisibility(View.GONE);
+        binding.messageEt.setText("");
     }
 
     private void checkIfCanSendMessages(OnCheckCompleteListener listener) {
         if (chatId == null || currentUserId == null) {
-            listener.onResult(false, "Ошибка загрузки чата");
+            listener.onResult(false, "Error loading the chat");
             return;
         }
 
@@ -1324,7 +1321,7 @@ public class ChatActivity extends AppCompatActivity {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         Boolean isBlocked = snapshot.getValue(Boolean.class);
                         if (isBlocked != null && isBlocked) {
-                            listener.onResult(false, "Вы не можете отправлять сообщения этому пользователю");
+                            listener.onResult(false, "You cannot send messages to this user");
                         } else {
                             listener.onResult(true, null);
                         }
@@ -1332,7 +1329,7 @@ public class ChatActivity extends AppCompatActivity {
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        listener.onResult(true, null); // В случае ошибки разрешаем
+                        listener.onResult(true, null);
                     }
                 });
     }
@@ -1355,13 +1352,13 @@ public class ChatActivity extends AppCompatActivity {
                 blockRef.setValue(!currentlyBlocked)
                         .addOnSuccessListener(aVoid -> {
                             String message = currentlyBlocked ?
-                                    "Пользователь разблокирован" :
-                                    "Пользователь заблокирован";
+                                    "The user is unblocked" :
+                                    "The user is blocked";
                             Toast.makeText(ChatActivity.this, message, Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
                             Toast.makeText(ChatActivity.this,
-                                    "Ошибка изменения статуса",
+                                    "Status change error",
                                     Toast.LENGTH_SHORT).show();
                         });
             }
@@ -1369,7 +1366,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 Toast.makeText(ChatActivity.this,
-                        "Ошибка загрузки данных",
+                        "Data upload error",
                         Toast.LENGTH_SHORT).show();
             }
         });
@@ -1408,5 +1405,70 @@ public class ChatActivity extends AppCompatActivity {
         void onLoaded(boolean isBlocked);
     }
 
-// ==================== КОНЕЦ БЛОКИРОВКИ ====================
+    private void updateMessageText(Message message, String newText) {
+        DatabaseReference msgRef = FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .child("messages")
+                .child(message.getId());
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("text", newText);
+        updates.put("isEdited", true);
+
+        msgRef.updateChildren(updates)
+                .addOnSuccessListener(aVoid -> {
+                    String successMessage;
+                    if (message.hasFile()) {
+                        successMessage = newText.isEmpty() ? "Caption removed" : "Caption edited";
+                    } else {
+                        successMessage = "Message edited";
+                    }
+                    Toast.makeText(this, successMessage, Toast.LENGTH_SHORT).show();
+
+                    if (message.hasFile()) {
+                        updateLastMessagePreviewIfNeeded(message, newText.isEmpty() ? getFilePreview(message) : newText);
+                    } else {
+                        updateLastMessagePreviewIfNeeded(message, newText);
+                    }
+
+                    cancelEdit();
+                    binding.sendMessageBtn.setEnabled(true);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Edit error", Toast.LENGTH_SHORT).show();
+                    binding.sendMessageBtn.setEnabled(true);
+                });
+    }
+
+    private void updateLastMessagePreviewIfNeeded(Message message, String newText) {
+        if (messagesAdapter == null || messagesAdapter.getItemCount() == 0) return;
+
+        List<Message> messages = messagesAdapter.getMessages();
+        if (messages.isEmpty() || !messages.get(messages.size() - 1).getId().equals(message.getId())) {
+            return;
+        }
+
+        String preview = newText.length() > 50 ? newText.substring(0, 47) + "..." : newText;
+
+        Map<String, Object> update = new HashMap<>();
+        update.put("lastMessagePreview", preview);
+
+        FirebaseDatabase.getInstance()
+                .getReference("Chats")
+                .child(chatId)
+                .updateChildren(update);
+    }
+
+    private String getFilePreview(Message message) {
+        if (message.isImage()) {
+            return "📷 Photo";
+        } else if (message.isVideo()) {
+            return "🎥 Video";
+        } else if (message.isDocument()) {
+            return "📄 " + message.getFileName();
+        } else {
+            return "";
+        }
+    }
 }

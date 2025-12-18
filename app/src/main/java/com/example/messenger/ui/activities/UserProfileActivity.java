@@ -37,14 +37,13 @@ public class UserProfileActivity extends AppCompatActivity {
         binding = ActivityUserProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Получаем ID пользователя из Intent
         userId = getIntent().getStringExtra("userId");
         currentUserId = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid()
                 : null;
 
         if (userId == null || currentUserId == null) {
-            Toast.makeText(this, "Ошибка загрузки профиля", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Profile upload error", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -54,18 +53,14 @@ public class UserProfileActivity extends AppCompatActivity {
     }
 
     private void setupUI() {
-        // Кнопка назад
         binding.backBtn.setOnClickListener(v -> finish());
 
-        // Кнопка "Написать сообщение"
         binding.sendMessageBtn.setOnClickListener(v -> openOrCreateChat());
 
-        // Клик на аватар для просмотра фото
         binding.profileImageView.setOnClickListener(v -> openMediaViewer());
     }
 
     private void openMediaViewer() {
-        // Получаем URL фото профиля
         userRef.child("profileImageUrl").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -77,7 +72,7 @@ public class UserProfileActivity extends AppCompatActivity {
                     intent.putExtra("title", binding.usernameTv.getText().toString());
                     startActivity(intent);
                 } else {
-                    Toast.makeText(UserProfileActivity.this, "Нет фото профиля", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(UserProfileActivity.this, "The user does not have a profile photo", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -95,33 +90,27 @@ public class UserProfileActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) {
-                    Toast.makeText(UserProfileActivity.this, "Пользователь не найден", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(UserProfileActivity.this, "The user was not found", Toast.LENGTH_SHORT).show();
                     finish();
                     return;
                 }
 
-                // Имя пользователя
                 String username = snapshot.child("username").getValue(String.class);
-                binding.usernameTv.setText(username != null ? username : "Неизвестный");
+                binding.usernameTv.setText(username != null ? username : "Unknown");
 
-                // Email
                 String email = snapshot.child("email").getValue(String.class);
-                binding.emailTv.setText(email != null ? email : "Не указано");
+                binding.emailTv.setText(email != null ? email : "Not specified");
 
-                // Телефон
                 String phone = snapshot.child("phone").getValue(String.class);
-                binding.phoneTv.setText(phone != null ? phone : "Не указано");
+                binding.phoneTv.setText(phone != null ? phone : "Not specified");
 
-                // Дата рождения
                 String birthday = snapshot.child("birthday").getValue(String.class);
-                binding.birthdayTv.setText(birthday != null ? birthday : "Не указано");
+                binding.birthdayTv.setText(birthday != null ? birthday : "Not specified");
 
-                // Статус онлайн
                 Boolean isOnline = snapshot.child("online").getValue(Boolean.class);
                 Long lastSeen = snapshot.child("lastSeen").getValue(Long.class);
                 updateUserStatus(isOnline, lastSeen);
 
-                // Фото профиля
                 String profileImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
                 if (profileImageUrl != null && !profileImageUrl.isEmpty()) {
                     loadProfileImage(profileImageUrl);
@@ -130,7 +119,7 @@ public class UserProfileActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(UserProfileActivity.this, "Ошибка загрузки данных", Toast.LENGTH_SHORT).show();
+                Toast.makeText(UserProfileActivity.this, "Data upload error", Toast.LENGTH_SHORT).show();
             }
         };
 
@@ -139,12 +128,12 @@ public class UserProfileActivity extends AppCompatActivity {
 
     private void updateUserStatus(Boolean isOnline, Long lastSeen) {
         if (isOnline != null && isOnline) {
-            binding.statusTv.setText("В сети");
+            binding.statusTv.setText("Online");
             binding.statusTv.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
             binding.statusTv.setVisibility(View.VISIBLE);
         } else if (lastSeen != null && lastSeen > 0) {
             String timeAgo = getTimeAgo(lastSeen);
-            binding.statusTv.setText("Был(а) в сети " + timeAgo);
+            binding.statusTv.setText("Was online " + timeAgo);
             binding.statusTv.setTextColor(getResources().getColor(android.R.color.darker_gray));
             binding.statusTv.setVisibility(View.VISIBLE);
         } else {
@@ -162,13 +151,13 @@ public class UserProfileActivity extends AppCompatActivity {
         long days = hours / 24;
 
         if (seconds < 60) {
-            return "только что";
+            return "just now";
         } else if (minutes < 60) {
-            return minutes + " мин. назад";
+            return minutes + " minute ago";
         } else if (hours < 24) {
-            return hours + " ч. назад";
+            return hours + " hours ago";
         } else if (days < 7) {
-            return days + " д. назад";
+            return days + " day ago";
         } else {
             SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
             return sdf.format(new Date(timestamp));
@@ -184,7 +173,6 @@ public class UserProfileActivity extends AppCompatActivity {
     }
 
     private void openOrCreateChat() {
-        // Проверяем существование чата
         String chatId1 = currentUserId + "_" + userId;
         String chatId2 = userId + "_" + currentUserId;
 
@@ -194,25 +182,21 @@ public class UserProfileActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot1) {
                 if (snapshot1.exists()) {
-                    // Чат существует с первым ID
                     openChat(chatId1);
                 } else {
-                    // Проверяем второй вариант ID
                     chatsRef.child(chatId2).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot snapshot2) {
                             if (snapshot2.exists()) {
-                                // Чат существует со вторым ID
                                 openChat(chatId2);
                             } else {
-                                // Чата нет, создаем новый
                                 createAndOpenChat(chatId1);
                             }
                         }
 
                         @Override
                         public void onCancelled(@NonNull DatabaseError error) {
-                            Toast.makeText(UserProfileActivity.this, "Ошибка", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(UserProfileActivity.this, "Error", Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
@@ -220,7 +204,7 @@ public class UserProfileActivity extends AppCompatActivity {
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(UserProfileActivity.this, "Ошибка", Toast.LENGTH_SHORT).show();
+                Toast.makeText(UserProfileActivity.this, "Error", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -238,7 +222,7 @@ public class UserProfileActivity extends AppCompatActivity {
                 .setValue(chatData)
                 .addOnSuccessListener(aVoid -> openChat(chatId))
                 .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Ошибка создания чата", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Chat creation error", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -246,7 +230,7 @@ public class UserProfileActivity extends AppCompatActivity {
         Intent intent = new Intent(UserProfileActivity.this, ChatActivity.class);
         intent.putExtra("chatId", chatId);
         startActivity(intent);
-        finish(); // Закрываем профиль после открытия чата
+        finish();
     }
 
     @Override

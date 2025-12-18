@@ -25,6 +25,7 @@ import com.cloudinary.android.callback.UploadCallback;
 import com.example.messenger.ui.activities.LoginActivity;
 import com.example.messenger.ui.activities.MediaViewerActivity;
 import com.example.messenger.R;
+import com.example.messenger.config.AppConfig;
 import com.example.messenger.databinding.FragmentProfileBinding;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -35,7 +36,6 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -47,7 +47,6 @@ public class ProfileFragment extends Fragment {
     private String currentUserId;
     private ActivityResultLauncher<String> imagePickerLauncher;
     private ValueEventListener userListener;
-    private boolean isLoading = false;
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_]{3,20}$");
 
@@ -79,13 +78,8 @@ public class ProfileFragment extends Fragment {
     }
 
     private void initializeCloudinary() {
-        Map<String, Object> config = new HashMap<>();
-        config.put("cloud_name", "dsfmj1rgd");
-        config.put("api_key", "292327364799723");
-        config.put("api_secret", "ViwIhwljI2owz0zxdFqVX4c8U58");
-
         try {
-            MediaManager.init(requireContext(), config);
+            MediaManager.init(requireContext(), AppConfig.getCloudinaryConfig());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -131,18 +125,17 @@ public class ProfileFragment extends Fragment {
                     return;
                 }
 
-                // Заполняем поля
                 String username = snapshot.child("username").getValue(String.class);
-                binding.usernameTv.setText(username != null ? username : "Не указано");
+                binding.usernameTv.setText(username != null ? username : "Not specified");
 
                 String email = snapshot.child("email").getValue(String.class);
-                binding.emailTv.setText(email != null ? email : "Не указано");
+                binding.emailTv.setText(email != null ? email : "Not specified");
 
                 String phone = snapshot.child("phone").getValue(String.class);
-                binding.phoneTv.setText(phone != null ? phone : "Не указано");
+                binding.phoneTv.setText(phone != null ? phone : "Not specified");
 
                 String birthday = snapshot.child("birthday").getValue(String.class);
-                binding.birthdayTv.setText(birthday != null ? birthday : "Не указано");
+                binding.birthdayTv.setText(birthday != null ? birthday : "Not specified");
 
                 if (snapshot.hasChild("profileImageUrl")) {
                     String imageUrl = snapshot.child("profileImageUrl").getValue(String.class);
@@ -150,13 +143,12 @@ public class ProfileFragment extends Fragment {
                         loadProfileImage(imageUrl);
                     }
                 }
-
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "Ошибка загрузки данных", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Data upload error", Toast.LENGTH_SHORT).show();
                 }
             }
         };
@@ -168,19 +160,19 @@ public class ProfileFragment extends Fragment {
         if (getContext() == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Изменить имя пользователя");
+        builder.setTitle("Change the user's name");
 
         final EditText input = new EditText(requireContext());
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         String currentUsername = binding.usernameTv.getText().toString();
-        input.setText(currentUsername.equals("Не указано") ? "" : currentUsername);
+        input.setText(currentUsername.equals("Not specified") ? "" : currentUsername);
         input.setSelection(input.getText().length());
         input.setPadding(50, 30, 50, 30);
         input.setHint("username");
 
         builder.setView(input);
-        builder.setPositiveButton("Сохранить", null);
-        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
+        builder.setPositiveButton("Save", null);
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         AlertDialog dialog = builder.create();
         dialog.show();
@@ -194,21 +186,20 @@ public class ProfileFragment extends Fragment {
     private void validateAndUpdateUsername(String username, AlertDialog dialog) {
         if (getContext() == null) return;
 
-        // Проверки
         if (username.isEmpty()) {
-            Toast.makeText(getContext(), "Имя пользователя не может быть пустым", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "The user name cannot be empty", Toast.LENGTH_SHORT).show();
             return;
         }
         if (username.length() < 3) {
-            Toast.makeText(getContext(), "Минимум 3 символа", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Minimum of 3 characters", Toast.LENGTH_SHORT).show();
             return;
         }
         if (username.length() > 20) {
-            Toast.makeText(getContext(), "Максимум 20 символов", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Maximum of 20 characters", Toast.LENGTH_SHORT).show();
             return;
         }
         if (!USERNAME_PATTERN.matcher(username).matches()) {
-            Toast.makeText(getContext(), "Только латинские буквы, цифры и _", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Only Latin letters, numbers and _", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -228,7 +219,6 @@ public class ProfileFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 boolean isUnique = true;
                 for (DataSnapshot userSnapshot : snapshot.getChildren()) {
-                    // Если нашли пользователя с таким username, но это не мы
                     if (!userSnapshot.getKey().equals(currentUserId)) {
                         isUnique = false;
                         break;
@@ -240,7 +230,7 @@ public class ProfileFragment extends Fragment {
                     dialog.dismiss();
                 } else {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "Это имя уже занято", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "This username is already taken", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -248,7 +238,7 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "Ошибка проверки. Попробуйте позже", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Verification error. Try again later", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -258,20 +248,20 @@ public class ProfileFragment extends Fragment {
         if (getContext() == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Изменить номер телефона");
+        builder.setTitle("Change the phone number");
 
         com.example.messenger.utils.PhoneMaskEditText input =
                 new com.example.messenger.utils.PhoneMaskEditText(requireContext());
         input.setPadding(50, 30, 50, 30);
 
         String currentPhone = binding.phoneTv.getText().toString();
-        if (!"Не указано".equals(currentPhone)) {
+        if (!"Not specified".equals(currentPhone)) {
             input.setPhone(currentPhone);
         }
 
         builder.setView(input);
-        builder.setPositiveButton("Сохранить", null);
-        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
+        builder.setPositiveButton("Save", null);
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         AlertDialog dialog = builder.create();
         dialog.show();
@@ -283,7 +273,7 @@ public class ProfileFragment extends Fragment {
                 dialog.dismiss();
             } else {
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "Заполните номер телефона полностью", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Fill in the phone number completely", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -300,7 +290,6 @@ public class ProfileFragment extends Fragment {
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 requireContext(),
                 (view, selectedYear, selectedMonth, selectedDay) -> {
-                    // Проверка возраста (мин 13 лет)
                     Calendar selectedDate = Calendar.getInstance();
                     selectedDate.set(selectedYear, selectedMonth, selectedDay);
 
@@ -308,7 +297,7 @@ public class ProfileFragment extends Fragment {
                     minAgeDate.add(Calendar.YEAR, -13);
 
                     if (selectedDate.after(minAgeDate)) {
-                        Toast.makeText(getContext(), "Минимальный возраст: 13 лет", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Minimum age: 13 years", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -329,7 +318,7 @@ public class ProfileFragment extends Fragment {
     private void updateField(String field, String value) {
         if (userRef == null) {
             if (getContext() != null) {
-                Toast.makeText(getContext(), "Ошибка: нет подключения к базе", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "Error: there is no connection to the database", Toast.LENGTH_SHORT).show();
             }
             return;
         }
@@ -337,12 +326,12 @@ public class ProfileFragment extends Fragment {
         userRef.child(field).setValue(value)
                 .addOnSuccessListener(aVoid -> {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "Данные обновлены", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "The data has been updated", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "Ошибка обновления", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Update error", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -351,7 +340,7 @@ public class ProfileFragment extends Fragment {
         if (imageUri == null) return;
 
         MediaManager.get().upload(imageUri)
-                .option("folder", "messenger_profiles")
+                .option("folder", AppConfig.CloudinaryFolders.PROFILE_IMAGES)
                 .option("public_id", "profile_" + currentUserId)
                 .option("overwrite", true)
                 .option("resource_type", "image")
@@ -368,14 +357,14 @@ public class ProfileFragment extends Fragment {
                         saveImageUrlToFirebase(imageUrl);
                         loadProfileImage(imageUrl);
                         if (getContext() != null) {
-                            Toast.makeText(getContext(), "Фото загружено!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Photo uploaded!", Toast.LENGTH_SHORT).show();
                         }
                     }
 
                     @Override
                     public void onError(String requestId, ErrorInfo error) {
                         if (getContext() != null) {
-                            Toast.makeText(getContext(), "Ошибка: " + error.getDescription(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Error: " + error.getDescription(), Toast.LENGTH_SHORT).show();
                         }
                     }
 
@@ -390,11 +379,10 @@ public class ProfileFragment extends Fragment {
 
         userRef.child("profileImageUrl").setValue(imageUrl)
                 .addOnSuccessListener(aVoid -> {
-                    // ничего доп. не делаем
                 })
                 .addOnFailureListener(e -> {
                     if (getContext() != null) {
-                        Toast.makeText(getContext(), "Ошибка сохранения URL", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Error saving the URL", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
@@ -421,9 +409,9 @@ public class ProfileFragment extends Fragment {
                 String imageUrl = snapshot.getValue(String.class);
 
                 if (imageUrl != null && !imageUrl.isEmpty()) {
-                    String[] options = {"Просмотреть фото", "Изменить фото"};
+                    String[] options = {"View a photo", "Edit a photo"};
                     new AlertDialog.Builder(requireContext())
-                            .setTitle("Фото профиля")
+                            .setTitle("Profile Photo")
                             .setItems(options, (dialog, which) -> {
                                 if (which == 0) {
                                     openMediaViewer(imageUrl);

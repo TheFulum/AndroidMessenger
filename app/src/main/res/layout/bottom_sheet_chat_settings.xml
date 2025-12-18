@@ -8,12 +8,11 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Настройки чата"
+        android:text="@string/chat_settings"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
-    <!-- Уведомления -->
     <LinearLayout
         android:id="@+id/action_toggle_notifications"
         android:layout_width="match_parent"
@@ -39,14 +38,14 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Уведомления"
+                android:text="@string/notifications"
                 android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/notification_subtitle_tv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Включены"
+                android:text="@string/enabled"
                 android:textSize="12sp"
                 android:textColor="@android:color/darker_gray" />
         </LinearLayout>
@@ -57,7 +56,6 @@
             android:layout_height="wrap_content" />
     </LinearLayout>
 
-    <!-- НОВОЕ: Блокировка пользователя -->
     <LinearLayout
         android:id="@+id/action_block_user"
         android:layout_width="match_parent"
@@ -83,20 +81,19 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Блокировка"
+                android:text="@string/blocking"
                 android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/block_subtitle_tv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Заблокировать пользователя"
+                android:text="@string/block_a_user"
                 android:textSize="12sp"
                 android:textColor="@android:color/darker_gray" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Поделиться контактом -->
     <LinearLayout
         android:id="@+id/action_share_contact"
         android:layout_width="match_parent"
@@ -115,11 +112,10 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Поделиться контактом"
+            android:text="@string/share_a_contact"
             android:textSize="16sp" />
     </LinearLayout>
 
-    <!-- Открыть профиль -->
     <LinearLayout
         android:id="@+id/action_open_profile"
         android:layout_width="match_parent"
@@ -138,7 +134,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Открыть профиль"
+            android:text="@string/open_a_profile"
             android:textSize="16sp" />
     </LinearLayout>
 

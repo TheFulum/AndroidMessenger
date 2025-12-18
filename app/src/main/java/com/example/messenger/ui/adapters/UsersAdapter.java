@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHolder> {
-    //                                                    ^^^^^^^^^^^^^^^^ добавь UsersAdapter.
     private ArrayList<User> users;
 
     public UsersAdapter(ArrayList<User> users) {
@@ -62,7 +61,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.UserViewHold
         return users.size();
     }
 
-    // ⚡ ВАЖНО: static class!
     static class UserViewHolder extends RecyclerView.ViewHolder {
         TextView username_tv;
         CircleImageView profileImage;

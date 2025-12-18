@@ -72,12 +72,12 @@ public class ForgotPasswordActivity extends AppCompatActivity {
         String email = binding.emailEt.getText().toString().trim();
 
         if (email.isEmpty()) {
-            Toast.makeText(this, "Введите email", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Enter email", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            Toast.makeText(this, "Введите корректный email", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Enter the correct email address", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -90,18 +90,18 @@ public class ForgotPasswordActivity extends AppCompatActivity {
 
                     if (task.isSuccessful()) {
                         Toast.makeText(this,
-                                "Письмо для сброса пароля отправлено на " + email,
+                                "Password reset email has been sent to " + email,
                                 Toast.LENGTH_LONG).show();
                         finish();
                     } else {
                         String errorMessage = task.getException() != null
                                 ? task.getException().getMessage()
-                                : "Ошибка отправки письма";
+                                : "Error sending email";
 
                         if (errorMessage.contains("no user record")) {
-                            errorMessage = "Пользователь с таким email не найден";
+                            errorMessage = "The user with this email was not found";
                         } else if (errorMessage.contains("network error")) {
-                            errorMessage = "Ошибка сети. Проверьте подключение";
+                            errorMessage = "Network error. Check the connection";
                         }
 
                         Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();

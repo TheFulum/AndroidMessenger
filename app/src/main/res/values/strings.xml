@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">Poligram</string>
-
-    <!-- Login strings -->
     <string name="login_title">Login</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
@@ -11,18 +9,12 @@
     <string name="sign_up">Sign Up</string>
     <string name="username">Username</string>
     <string name="profile">Profile</string>
-
-    <!-- Chats strings -->
     <string name="users">Users</string>
     <string name="chats">Chats</string>
-
-    <!-- Profile strings -->
     <string name="logout">Logout</string>
     <string name="change_photo">Change photo</string>
     <string name="profile_picture">Profile image</string>
     <string name="tap_to_change_photo">Tap to change photo</string>
-
-    <!-- Chat strings -->
     <string name="back">Back</string>
     <string name="send">Send</string>
     <string name="type_message">Enter message</string>
@@ -43,4 +35,30 @@
     <string name="search_chats">Search chats...</string>
     <string name="search_users">Search users...</string>
     <string name="video_message">Video-message</string>
+    <string name="forward">Forward</string>
+    <string name="reply">Reply</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="chat_settings">Chat Settings</string>
+    <string name="notifications">Notifications</string>
+    <string name="enabled">Enabled</string>
+    <string name="blocking">Blocking</string>
+    <string name="block_a_user">Block a user</string>
+    <string name="share_a_contact">Share a contact</string>
+    <string name="open_a_profile">Open a profile</string>
+    <string name="write_a_message">Write a message</string>
+    <string name="email_icon">Email icon</string>
+    <string name="phone_icon">Phone icon</string>
+    <string name="calendar_icon">Calendar icon</string>
+    <string name="forward_message">Forward message</string>
+    <string name="forgot_your_password">Forgot your password?</string>
+    <string name="enter_your_email_address_and_we_will_send_you_instructions_to_reset_your_password">Enter your email address and we will send you instructions to reset your password.</string>
+    <string name="online">Online</string>
+    <string name="menu">Menu</string>
+    <string name="_0_00">0:00</string>
+    <string name="forwarded_from_username">📩 Forwarded from Username</string>
+    <string name="edited">Edited</string>
+    <string name="contact">Contact</string>
+    <string name="success_icon">✓</string>
+    <string name="success_icon_double">✓✓</string>
 </resources>

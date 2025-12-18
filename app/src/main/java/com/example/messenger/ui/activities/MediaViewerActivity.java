@@ -30,7 +30,7 @@ public class MediaViewerActivity extends AppCompatActivity {
 
     private ActivityMediaViewerBinding binding;
     private String mediaUrl;
-    private String mediaType; // "image" или "video"
+    private String mediaType;
     private String title;
 
     private ExoPlayer player;
@@ -42,7 +42,6 @@ public class MediaViewerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Полноэкранный режим
         getWindow().setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -51,7 +50,6 @@ public class MediaViewerActivity extends AppCompatActivity {
         binding = ActivityMediaViewerBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // Получаем данные из Intent
         mediaUrl = getIntent().getStringExtra("mediaUrl");
         mediaType = getIntent().getStringExtra("mediaType");
         title = getIntent().getStringExtra("title");
@@ -60,7 +58,7 @@ public class MediaViewerActivity extends AppCompatActivity {
         Log.d(TAG, "Media Type: " + mediaType);
 
         if (mediaUrl == null || mediaType == null) {
-            Toast.makeText(this, "Ошибка загрузки медиа", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Media upload error", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -70,19 +68,10 @@ public class MediaViewerActivity extends AppCompatActivity {
     }
 
     private void setupUI() {
-        // Заголовок
-        binding.titleTv.setText(title != null ? title : "Медиа");
-
-        // Кнопка назад
+        binding.titleTv.setText(title != null ? title : "Media");
         binding.backBtn.setOnClickListener(v -> finish());
-
-        // Кнопка скачать
         binding.downloadBtn.setOnClickListener(v -> downloadMedia());
-
-        // Клик по экрану для скрытия/показа панелей
         binding.photoView.setOnClickListener(v -> toggleBars());
-
-        // Для ExoPlayer управление панелями встроено
     }
 
     private void loadMedia() {
@@ -101,7 +90,6 @@ public class MediaViewerActivity extends AppCompatActivity {
                 .load(mediaUrl)
                 .into(binding.photoView);
 
-        // Скрываем прогресс после загрузки
         binding.photoView.postDelayed(() -> {
             binding.loadingProgress.setVisibility(View.GONE);
             binding.photoView.setVisibility(View.VISIBLE);
@@ -119,7 +107,7 @@ public class MediaViewerActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e(TAG, "Error initializing player", e);
             binding.loadingProgress.setVisibility(View.GONE);
-            Toast.makeText(this, "Ошибка загрузки видео: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Video upload error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -128,13 +116,10 @@ public class MediaViewerActivity extends AppCompatActivity {
             return;
         }
 
-        // Создаем ExoPlayer
         player = new ExoPlayer.Builder(this).build();
 
-        // Привязываем к UI
         binding.playerView.setPlayer(player);
 
-        // Настраиваем источник данных с правильными заголовками
         DefaultHttpDataSource.Factory httpDataSourceFactory =
                 new DefaultHttpDataSource.Factory()
                         .setUserAgent(Util.getUserAgent(this, "MessengerApp"))
@@ -143,17 +128,14 @@ public class MediaViewerActivity extends AppCompatActivity {
         DefaultDataSource.Factory dataSourceFactory =
                 new DefaultDataSource.Factory(this, httpDataSourceFactory);
 
-        // Создаем MediaSource
         MediaItem mediaItem = MediaItem.fromUri(Uri.parse(mediaUrl));
         MediaSource mediaSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
                 .createMediaSource(mediaItem);
 
-        // Настраиваем плеер
         player.setMediaSource(mediaSource);
         player.setPlayWhenReady(playWhenReady);
         player.seekTo(currentWindow, playbackPosition);
 
-        // Добавляем слушатели
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int playbackState) {
@@ -186,7 +168,7 @@ public class MediaViewerActivity extends AppCompatActivity {
                 Log.e(TAG, "Player error: " + error.getMessage(), error);
                 binding.loadingProgress.setVisibility(View.GONE);
 
-                String errorMessage = "Ошибка воспроизведения";
+                String errorMessage = "Playback error";
                 if (error.getMessage() != null) {
                     errorMessage += ": " + error.getMessage();
                 }
@@ -200,7 +182,6 @@ public class MediaViewerActivity extends AppCompatActivity {
             }
         });
 
-        // Начинаем подготовку
         player.prepare();
 
         Log.d(TAG, "Player initialized and preparing media");
@@ -227,18 +208,17 @@ public class MediaViewerActivity extends AppCompatActivity {
 
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(mediaUrl));
             request.setTitle(fileName);
-            request.setDescription("Скачивание файла...");
+            request.setDescription("Downloading a file...");
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
 
             DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
             if (manager != null) {
                 manager.enqueue(request);
-                Toast.makeText(this, "Скачивание начато", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Download started", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            Toast.makeText(this, "Ошибка скачивания", Toast.LENGTH_SHORT).show();
-            Log.e(TAG, "Download error", e);
+            Toast.makeText(this, "Download error", Toast.LENGTH_SHORT).show();
         }
     }
 

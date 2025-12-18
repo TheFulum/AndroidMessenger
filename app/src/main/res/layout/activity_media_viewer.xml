@@ -8,7 +8,6 @@
     android:background="#000000"
     android:fitsSystemWindows="true">
 
-    <!-- Просмотр изображений (под кнопками) -->
     <com.github.chrisbanes.photoview.PhotoView
         android:id="@+id/photo_view"
         android:layout_width="match_parent"
@@ -21,7 +20,6 @@
         tools:src="@drawable/username_icon"
         tools:visibility="visible" />
 
-    <!-- Видеоплеер (под кнопками) -->
     <com.google.android.exoplayer2.ui.StyledPlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
@@ -35,7 +33,6 @@
         app:layout_constraintBottom_toBottomOf="parent"
         tools:visibility="visible" />
 
-    <!-- Верхняя панель (поверх всего) -->
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="match_parent"
@@ -85,7 +82,6 @@
 
     </LinearLayout>
 
-    <!-- Индикатор загрузки (поверх всего) -->
     <ProgressBar
         android:id="@+id/loading_progress"
         android:layout_width="60dp"

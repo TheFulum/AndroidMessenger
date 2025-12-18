@@ -5,7 +5,6 @@ public class Message {
     private String id, ownerId, text, date;
     private long timestamp;
 
-    // Поля для файлов
     private String fileUrl;
     private String fileType;
     private String fileName;
@@ -13,23 +12,18 @@ public class Message {
     private long voiceDuration;
     private long videoDuration;
 
-    // Пересылка
     private boolean isForwarded;
     private String forwardedFrom;
 
-    // Редактирование
     private boolean isEdited;
 
-    // Ответ на сообщение
     private String replyToMessageId;
     private String replyToText;
     private String replyToOwnerName;
     private String replyToFileType;
 
-    // НОВОЕ: Статус прочитанности
     private boolean read;
 
-    // НОВОЕ: Данные контакта
     private String contactUserId;
     private String contactUsername;
 
@@ -63,7 +57,6 @@ public class Message {
         this.read = false;
     }
 
-    // Getters и Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -118,11 +111,9 @@ public class Message {
     public String getReplyToFileType() { return replyToFileType; }
     public void setReplyToFileType(String replyToFileType) { this.replyToFileType = replyToFileType; }
 
-    // НОВОЕ: Getter/Setter для read
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
 
-    // НОВОЕ: Getter/Setter для контакта
     public String getContactUserId() { return contactUserId; }
     public void setContactUserId(String contactUserId) { this.contactUserId = contactUserId; }
 
@@ -137,7 +128,6 @@ public class Message {
         return replyToMessageId != null && !replyToMessageId.isEmpty();
     }
 
-    // Вспомогательные методы
     public boolean hasFile() {
         return fileUrl != null && !fileUrl.isEmpty();
     }

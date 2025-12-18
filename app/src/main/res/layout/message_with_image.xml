@@ -8,7 +8,6 @@
     android:orientation="vertical"
     android:padding="8dp">
 
-    <!-- Индикатор пересылки -->
     <TextView
         android:id="@+id/forwarded_tv"
         android:layout_width="wrap_content"
@@ -16,7 +15,7 @@
         android:layout_marginStart="8dp"
         android:layout_marginBottom="4dp"
         android:fontFamily="@font/ubuntu_light"
-        android:text="📩 Forwarded from Username"
+        android:text="@string/forwarded_from_username"
         android:textColor="#808080"
         android:textSize="12sp"
         android:textStyle="italic"
@@ -37,7 +36,6 @@
             android:orientation="vertical"
             android:padding="8dp">
 
-            <!-- Изображение -->
             <androidx.cardview.widget.CardView
                 android:layout_width="250dp"
                 android:layout_height="wrap_content"
@@ -54,7 +52,6 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Текст под изображением (если есть) -->
             <TextView
                 android:id="@+id/message_tv"
                 android:layout_width="wrap_content"
@@ -64,10 +61,9 @@
                 android:textColor="?android:textColorPrimary"
                 android:textSize="16sp"
                 android:visibility="gone"
-                tools:text="Подпись к фото"
+                tools:text="Photo caption"
                 tools:visibility="visible" />
 
-            <!-- Кнопка скачать -->
             <Button
                 android:id="@+id/download_btn"
                 android:layout_width="wrap_content"
@@ -86,7 +82,6 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- Время снизу -->
     <TextView
         android:id="@+id/message_date_tv"
         android:layout_width="wrap_content"

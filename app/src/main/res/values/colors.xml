@@ -1,40 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary">#2196F3</color>
-
-    <!-- Базовые цвета -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-
-    <!-- Основной синий цвет -->
     <color name="blue">#2A63F6</color>
     <color name="blue_light">#5B8BF9</color>
-
-    <!-- Светлая тема -->
     <color name="light_blue">#C0CCEC</color>
     <color name="grey">#F3F3F3</color>
     <color name="window_background">#F7F8FA</color>
-
-    <!-- Темная тема -->
     <color name="dark_background">#121212</color>
     <color name="dark_surface">#1E1E1E</color>
     <color name="dark_surface_variant">#2C2C2C</color>
-
-    <!-- Оттенки серого -->
     <color name="gray_300">#E0E0E0</color>
     <color name="gray_400">#BDBDBD</color>
     <color name="gray_500">#9E9E9E</color>
     <color name="gray_600">#757575</color>
     <color name="gray_700">#616161</color>
-
-    <!-- Material Design цвета (если нужны) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
     <color name="blue_500">#2196F3</color>
-
     <color name="message_background">#F0F0F0</color>
-
     <color name="red">#F44336</color>
     <color name="gray">#757575</color>
 </resources>

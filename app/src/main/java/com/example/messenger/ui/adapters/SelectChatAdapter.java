@@ -51,7 +51,6 @@ public class SelectChatAdapter extends RecyclerView.Adapter<SelectChatAdapter.Vi
 
         holder.usernameTv.setText(username != null ? username : "Unknown");
 
-        // Загружаем фото профиля
         loadProfileImage(holder, otherUid);
 
         holder.itemView.setOnClickListener(v -> {
@@ -61,9 +60,6 @@ public class SelectChatAdapter extends RecyclerView.Adapter<SelectChatAdapter.Vi
         });
     }
 
-    /**
-     * Загружает фото профиля пользователя
-     */
     private void loadProfileImage(ViewHolder holder, String uid) {
         if (uid == null) {
             holder.profileIv.setImageResource(R.drawable.baseline_person_24);

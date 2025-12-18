@@ -8,7 +8,6 @@
     android:orientation="vertical"
     android:padding="8dp">
 
-    <!-- Индикатор пересылки -->
     <TextView
         android:id="@+id/forwarded_tv"
         android:layout_width="wrap_content"
@@ -16,7 +15,7 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="4dp"
         android:fontFamily="@font/ubuntu_light"
-        android:text="📩 Forwarded from Username"
+        android:text="@string/forwarded_from_username"
         android:textColor="#808080"
         android:textSize="12sp"
         android:textStyle="italic"
@@ -38,7 +37,6 @@
             android:orientation="horizontal"
             android:padding="12dp">
 
-            <!-- Кнопка Play/Pause -->
             <ImageButton
                 android:id="@+id/play_pause_btn"
                 android:layout_width="40dp"
@@ -57,7 +55,6 @@
                 android:layout_weight="1"
                 android:orientation="vertical">
 
-                <!-- Прогресс бар -->
                 <SeekBar
                     android:id="@+id/voice_seekbar"
                     android:layout_width="match_parent"
@@ -66,7 +63,6 @@
                     android:progressTint="@android:color/white"
                     android:thumbTint="@android:color/white" />
 
-                <!-- Длительность -->
                 <TextView
                     android:id="@+id/voice_duration_tv"
                     android:layout_width="wrap_content"
@@ -82,7 +78,6 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- ОБНОВЛЕНО: Время и статус прочитанности -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -100,13 +95,12 @@
             android:textSize="12sp"
             tools:text="06.12.2025 19:19" />
 
-        <!-- НОВОЕ: Статус прочитанности -->
         <TextView
             android:id="@+id/read_status_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="4dp"
-            android:text="✓"
+            android:text="@string/success_icon"
             android:textSize="14sp"
             android:textColor="?android:textColorSecondary"
             android:fontFamily="@font/ubuntu_light"
